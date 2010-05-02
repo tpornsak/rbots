@@ -23,20 +23,27 @@ namespace CameraTrendnet
             System.Net.HttpWebRequest req = (HttpWebRequest)WebRequest.Create(cameraURL);
             req.Credentials = new NetworkCredential("bloftin", "r4d4r4");
 
-            WebResponse response = req.GetResponse();
-            Stream stream = response.GetResponseStream();
-
-            while ((read = stream.Read(buffer, total, 1000)) != 0)
+            try
             {
-                total += read;
+
+                WebResponse response = req.GetResponse();
+                Stream stream = response.GetResponseStream();
+
+                while ((read = stream.Read(buffer, total, 1000)) != 0)
+                {
+                    total += read;
+                }
+
+                Bitmap bmp = (Bitmap)Bitmap.FromStream(new MemoryStream(buffer, 0, total));
+
+                pictureBoxCamera.Image = bmp;
+
+                textBoxLog.AppendText(response.Headers.ToString());
             }
-
-            Bitmap bmp = (Bitmap)Bitmap.FromStream(new MemoryStream(buffer, 0, total));
-
-            pictureBoxCamera.Image = bmp;
-
-            textBoxLog.AppendText(response.Headers.ToString());
-
+            catch (Exception e)
+            {
+                textBoxLog.AppendText(e.Message.ToString());
+            }
         }
     }
 }

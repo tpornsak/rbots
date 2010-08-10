@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual C# Express 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GyroRealTime", "GyroRealTime\GyroRealTime.csproj", "{377195DA-36D6-4003-9560-ADBD8AA17E6D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{377195DA-36D6-4003-9560-ADBD8AA17E6D}.Debug|x86.ActiveCfg = Debug|x86
+		{377195DA-36D6-4003-9560-ADBD8AA17E6D}.Debug|x86.Build.0 = Debug|x86
+		{377195DA-36D6-4003-9560-ADBD8AA17E6D}.Release|x86.ActiveCfg = Release|x86
+		{377195DA-36D6-4003-9560-ADBD8AA17E6D}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,9 @@
+C:\Documents and Settings\z1076653\my documents\visual studio 2010\Projects\GyroRealTime\GyroRealTime\bin\Debug\GyroRealTime.exe
+C:\Documents and Settings\z1076653\my documents\visual studio 2010\Projects\GyroRealTime\GyroRealTime\bin\Debug\GyroRealTime.pdb
+C:\Documents and Settings\z1076653\my documents\visual studio 2010\Projects\GyroRealTime\GyroRealTime\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\Documents and Settings\z1076653\my documents\visual studio 2010\Projects\GyroRealTime\GyroRealTime\obj\x86\Debug\GyroRealTime.FormGyroRealTime.resources
+C:\Documents and Settings\z1076653\my documents\visual studio 2010\Projects\GyroRealTime\GyroRealTime\obj\x86\Debug\GyroRealTime.Properties.Resources.resources
+C:\Documents and Settings\z1076653\my documents\visual studio 2010\Projects\GyroRealTime\GyroRealTime\obj\x86\Debug\GenerateResource.read.1.tlog
+C:\Documents and Settings\z1076653\my documents\visual studio 2010\Projects\GyroRealTime\GyroRealTime\obj\x86\Debug\GenerateResource.write.1.tlog
+C:\Documents and Settings\z1076653\my documents\visual studio 2010\Projects\GyroRealTime\GyroRealTime\obj\x86\Debug\GyroRealTime.exe
+C:\Documents and Settings\z1076653\my documents\visual studio 2010\Projects\GyroRealTime\GyroRealTime\obj\x86\Debug\GyroRealTime.pdb

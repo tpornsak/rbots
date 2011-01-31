@@ -1,0 +1,17 @@
+C:\code\Pilot\Pilot\bin\Debug\CameraTrendnetAForge.exe
+C:\code\Pilot\Pilot\bin\Debug\CameraTrendnetAForge.pdb
+C:\code\Pilot\Pilot\bin\Debug\AForge.Controls.dll
+C:\code\Pilot\Pilot\bin\Debug\AForge.Video.DirectShow.dll
+C:\code\Pilot\Pilot\bin\Debug\AForge.Video.dll
+C:\code\Pilot\Pilot\bin\Debug\AForge.dll
+C:\code\Pilot\Pilot\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\code\Pilot\Pilot\obj\x86\Debug\CameraTrendnetAForge.FormPilot.resources
+C:\code\Pilot\Pilot\obj\x86\Debug\CameraTrendnetAForge.Properties.Resources.resources
+C:\code\Pilot\Pilot\obj\x86\Debug\GenerateResource.read.1.tlog
+C:\code\Pilot\Pilot\obj\x86\Debug\GenerateResource.write.1.tlog
+C:\code\Pilot\Pilot\obj\x86\Debug\CameraTrendnetAForge.exe
+C:\code\Pilot\Pilot\obj\x86\Debug\CameraTrendnetAForge.pdb
+C:\code\Pilot\Pilot\bin\Debug\AForge.Controls.xml
+C:\code\Pilot\Pilot\bin\Debug\AForge.Video.xml
+C:\code\Pilot\Pilot\bin\Debug\AForge.Video.DirectShow.xml
+C:\code\Pilot\Pilot\bin\Debug\AForge.xml

@@ -50,7 +50,6 @@
             this.trackBarAzSpeed = new System.Windows.Forms.TrackBar();
             this.buttonFire = new System.Windows.Forms.Button();
             this.checkBoxMouseControl = new System.Windows.Forms.CheckBox();
-            this.webBrowserCam = new System.Windows.Forms.WebBrowser();
             this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarElPos)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarAzPos)).BeginInit();
@@ -99,16 +98,16 @@
             this.toolStrip1.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripLabelFPS});
-            this.toolStrip1.Location = new System.Drawing.Point(0, 1041);
+            this.toolStrip1.Location = new System.Drawing.Point(0, 510);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(1100, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(1072, 25);
             this.toolStrip1.TabIndex = 3;
             this.toolStrip1.Text = "toolStrip1";
             // 
             // toolStripLabelFPS
             // 
             this.toolStripLabelFPS.Name = "toolStripLabelFPS";
-            this.toolStripLabelFPS.Size = new System.Drawing.Size(78, 22);
+            this.toolStripLabelFPS.Size = new System.Drawing.Size(86, 22);
             this.toolStripLabelFPS.Text = "toolStripLabel1";
             // 
             // trackBarElPos
@@ -142,7 +141,7 @@
             // 
             // serialPortMech
             // 
-            this.serialPortMech.PortName = "COM9";
+            this.serialPortMech.PortName = "COM5";
             // 
             // trackBarAzPos
             // 
@@ -252,21 +251,11 @@
             this.checkBoxMouseControl.UseVisualStyleBackColor = true;
             this.checkBoxMouseControl.CheckedChanged += new System.EventHandler(this.checkBoxMouseControl_CheckedChanged);
             // 
-            // webBrowserCam
-            // 
-            this.webBrowserCam.Location = new System.Drawing.Point(13, 506);
-            this.webBrowserCam.MinimumSize = new System.Drawing.Size(20, 20);
-            this.webBrowserCam.Name = "webBrowserCam";
-            this.webBrowserCam.Size = new System.Drawing.Size(660, 500);
-            this.webBrowserCam.TabIndex = 18;
-            this.webBrowserCam.Url = new System.Uri("http://192.168.2.3/img/video.mjpeg", System.UriKind.Absolute);
-            // 
             // FormPilot
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1100, 1066);
-            this.Controls.Add(this.webBrowserCam);
+            this.ClientSize = new System.Drawing.Size(1072, 535);
             this.Controls.Add(this.checkBoxMouseControl);
             this.Controls.Add(this.buttonFire);
             this.Controls.Add(this.textBoxAzSpeed);
@@ -325,7 +314,6 @@
         private System.Windows.Forms.TrackBar trackBarAzSpeed;
         private System.Windows.Forms.Button buttonFire;
         private System.Windows.Forms.CheckBox checkBoxMouseControl;
-        private System.Windows.Forms.WebBrowser webBrowserCam;
     }
 }
 

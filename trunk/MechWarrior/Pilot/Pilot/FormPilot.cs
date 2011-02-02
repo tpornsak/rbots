@@ -38,7 +38,7 @@ namespace CameraTrendnetAForge
         // statistics array
         private int[] statCount = new int[statLength];
 
-        string cameraURL = "http://192.168.2.3/img/video.mjpeg";
+        string cameraURL = "http://192.168.2.107/img/video.mjpeg";
         public FormPilot()
         {
             
@@ -160,7 +160,7 @@ namespace CameraTrendnetAForge
 
         private void timer_Tick(object sender, EventArgs e)
         {
-            webBrowserCam.Refresh();
+            //webBrowserCam.Refresh();
 
             IVideoSource videoSource = mechCamera.VideoSource;
 

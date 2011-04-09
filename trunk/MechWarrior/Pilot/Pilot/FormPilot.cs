@@ -22,6 +22,15 @@ namespace CameraTrendnetAForge
         // create filter
         Mirror filterMirror = new Mirror(false,true);
 
+        // hitpoints
+        private int hitPoints = 20;
+
+        private const float deg2rad = (float) (Math.PI / 180.0);
+
+        // Match timer variables
+        private int minutes = 0;
+        private int seconds = 0;
+
         // statistics length
         private const int statLength = 15;
         // current statistics index
@@ -156,10 +165,6 @@ namespace CameraTrendnetAForge
             filterMirror.ApplyInPlace(image);
             Graphics g = Graphics.FromImage(image);
 
-            // paint current time
-            SolidBrush brush = new SolidBrush(Color.Red);
-            g.DrawString(now.ToString(), this.Font, brush, new PointF(5, 5));
-
             // draw cross-hairs
             Pen pR = new Pen(Color.Red);
             
@@ -168,9 +173,6 @@ namespace CameraTrendnetAForge
             g.DrawRectangle(pR, 366.0f, 257.0f, 20.0f, 20.0f);
 
             
-
-            // must dispose !
-            brush.Dispose();
             pR.Dispose();
 
             g.Dispose();
@@ -260,6 +262,8 @@ namespace CameraTrendnetAForge
                 // for(int i=1;i < cmdLength;i++)
                 //     textBoxDebug.AppendText("," + cmdBytes[i].ToString());
                 //  textBoxDebug.AppendText(System.Environment.NewLine);
+
+                panelGunOrientation.Refresh();
 
             }
             catch (Exception ex)
@@ -385,7 +389,7 @@ namespace CameraTrendnetAForge
 
         private void mechCamera_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyData == Keys.W)
+             if (e.KeyData == Keys.W)
             {
                 cmdLeg = 0x02;
             }
@@ -433,6 +437,10 @@ namespace CameraTrendnetAForge
                     checkBoxMouseControl.Checked = true;
 
                 }
+            }
+            else if (e.KeyCode == Keys.L)
+            {
+                timerMatchClock.Start();
             }
             else
             {
@@ -595,6 +603,50 @@ namespace CameraTrendnetAForge
         private void labelArm_Click(object sender, EventArgs e)
         {
             mechCamera.Focus();
+        }
+
+        private void timerMatchClock_Tick(object sender, EventArgs e)
+        {
+            seconds++;
+            // reset seconds and increment minutes
+            if (seconds >= 60)
+            {
+                seconds = 0;
+                minutes++;
+            }
+            labelSeconds.Text = seconds.ToString();
+            labelMinutes.Text = minutes.ToString();
+
+        }
+
+        private void panelGunOrientation_Paint(object sender, PaintEventArgs e)
+        {
+            // draw gun orientation to panel
+            Graphics grfx = panelGunOrientation.CreateGraphics();
+            Pen redPen = new Pen(Color.Red);
+            redPen.Width = 5;
+            Pen blackPen = new Pen(Color.Black);
+            const int xp2 = 95;
+            const int yp2 = 170;
+            const float lineLength = 90.0f;
+            
+            const float bit2deg = 1024.0f / 300.0f;
+            float theta = trackBarAzPos.Value / bit2deg;  // azimuth angle in degrees
+            float phi = theta - 150;
+            // convert to radians
+            phi *= deg2rad;
+            float x1 = lineLength * (float)Math.Sin(phi);
+            float y1 = lineLength * (float) Math.Cos(phi);
+            float xp1 = x1 + xp2;
+            float yp1 = yp2 - y1;
+
+            grfx.DrawRectangle(blackPen, 50, 150, 100, 40);
+
+            // draw gun barrel, update based on orientation
+            grfx.DrawLine(redPen,xp1,yp1,xp2,yp2);
+            redPen.Dispose();
+            grfx.Dispose();
+            
         }
     }
 }

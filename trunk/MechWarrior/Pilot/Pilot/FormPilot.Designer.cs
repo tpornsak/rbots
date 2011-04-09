@@ -56,6 +56,12 @@
             this.checkBoxArm = new System.Windows.Forms.CheckBox();
             this.labelPKeyArm = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
+            this.labelHitPoints = new System.Windows.Forms.Label();
+            this.timerMatchClock = new System.Windows.Forms.Timer(this.components);
+            this.labelMinutes = new System.Windows.Forms.Label();
+            this.labelColon = new System.Windows.Forms.Label();
+            this.labelSeconds = new System.Windows.Forms.Label();
+            this.panelGunOrientation = new System.Windows.Forms.Panel();
             this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarElPos)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarAzPos)).BeginInit();
@@ -66,10 +72,10 @@
             // textBoxDebug
             // 
             this.textBoxDebug.Enabled = false;
-            this.textBoxDebug.Location = new System.Drawing.Point(734, 389);
+            this.textBoxDebug.Location = new System.Drawing.Point(24, 569);
             this.textBoxDebug.Multiline = true;
             this.textBoxDebug.Name = "textBoxDebug";
-            this.textBoxDebug.Size = new System.Drawing.Size(452, 134);
+            this.textBoxDebug.Size = new System.Drawing.Size(303, 65);
             this.textBoxDebug.TabIndex = 0;
             this.textBoxDebug.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textBoxDebug_KeyDown);
             // 
@@ -77,7 +83,7 @@
             // 
             this.labelDebugLog.AutoSize = true;
             this.labelDebugLog.Enabled = false;
-            this.labelDebugLog.Location = new System.Drawing.Point(742, 358);
+            this.labelDebugLog.Location = new System.Drawing.Point(21, 553);
             this.labelDebugLog.Name = "labelDebugLog";
             this.labelDebugLog.Size = new System.Drawing.Size(60, 13);
             this.labelDebugLog.TabIndex = 1;
@@ -86,7 +92,7 @@
             // mechCamera
             // 
             this.mechCamera.BackColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.mechCamera.Location = new System.Drawing.Point(24, 73);
+            this.mechCamera.Location = new System.Drawing.Point(25, 73);
             this.mechCamera.Margin = new System.Windows.Forms.Padding(0);
             this.mechCamera.Name = "mechCamera";
             this.mechCamera.Size = new System.Drawing.Size(640, 480);
@@ -256,7 +262,7 @@
             // 
             // buttonFire
             // 
-            this.buttonFire.Location = new System.Drawing.Point(163, 20);
+            this.buttonFire.Location = new System.Drawing.Point(163, 5);
             this.buttonFire.Name = "buttonFire";
             this.buttonFire.Size = new System.Drawing.Size(90, 34);
             this.buttonFire.TabIndex = 16;
@@ -268,7 +274,7 @@
             // checkBoxMouseControl
             // 
             this.checkBoxMouseControl.AutoSize = true;
-            this.checkBoxMouseControl.Location = new System.Drawing.Point(54, 30);
+            this.checkBoxMouseControl.Location = new System.Drawing.Point(54, 15);
             this.checkBoxMouseControl.Name = "checkBoxMouseControl";
             this.checkBoxMouseControl.Size = new System.Drawing.Size(94, 17);
             this.checkBoxMouseControl.TabIndex = 17;
@@ -280,7 +286,7 @@
             // 
             this.label1.AutoSize = true;
             this.label1.Enabled = false;
-            this.label1.Location = new System.Drawing.Point(742, 248);
+            this.label1.Location = new System.Drawing.Point(359, 553);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(71, 13);
             this.label1.TabIndex = 18;
@@ -289,10 +295,10 @@
             // textBoxFocus
             // 
             this.textBoxFocus.Enabled = false;
-            this.textBoxFocus.Location = new System.Drawing.Point(734, 272);
+            this.textBoxFocus.Location = new System.Drawing.Point(362, 569);
             this.textBoxFocus.Multiline = true;
             this.textBoxFocus.Name = "textBoxFocus";
-            this.textBoxFocus.Size = new System.Drawing.Size(420, 83);
+            this.textBoxFocus.Size = new System.Drawing.Size(302, 64);
             this.textBoxFocus.TabIndex = 19;
             // 
             // labelArm
@@ -300,7 +306,7 @@
             this.labelArm.AutoSize = true;
             this.labelArm.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F);
             this.labelArm.ForeColor = System.Drawing.Color.Green;
-            this.labelArm.Location = new System.Drawing.Point(465, 20);
+            this.labelArm.Location = new System.Drawing.Point(465, 5);
             this.labelArm.Name = "labelArm";
             this.labelArm.Size = new System.Drawing.Size(209, 37);
             this.labelArm.TabIndex = 20;
@@ -310,7 +316,7 @@
             // checkBoxArm
             // 
             this.checkBoxArm.AutoSize = true;
-            this.checkBoxArm.Location = new System.Drawing.Point(259, 30);
+            this.checkBoxArm.Location = new System.Drawing.Point(259, 15);
             this.checkBoxArm.Name = "checkBoxArm";
             this.checkBoxArm.Size = new System.Drawing.Size(94, 17);
             this.checkBoxArm.TabIndex = 21;
@@ -321,7 +327,7 @@
             // labelPKeyArm
             // 
             this.labelPKeyArm.AutoSize = true;
-            this.labelPKeyArm.Location = new System.Drawing.Point(375, 20);
+            this.labelPKeyArm.Location = new System.Drawing.Point(375, 5);
             this.labelPKeyArm.Name = "labelPKeyArm";
             this.labelPKeyArm.Size = new System.Drawing.Size(76, 13);
             this.labelPKeyArm.TabIndex = 22;
@@ -331,17 +337,79 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(359, 41);
+            this.label2.Location = new System.Drawing.Point(359, 26);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(92, 13);
             this.label2.TabIndex = 23;
             this.label2.Text = "Press O to DisArm";
+            // 
+            // labelHitPoints
+            // 
+            this.labelHitPoints.AutoSize = true;
+            this.labelHitPoints.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelHitPoints.ForeColor = System.Drawing.Color.Blue;
+            this.labelHitPoints.Location = new System.Drawing.Point(677, 74);
+            this.labelHitPoints.Name = "labelHitPoints";
+            this.labelHitPoints.Size = new System.Drawing.Size(55, 37);
+            this.labelHitPoints.TabIndex = 24;
+            this.labelHitPoints.Text = "20";
+            // 
+            // timerMatchClock
+            // 
+            this.timerMatchClock.Interval = 1000;
+            this.timerMatchClock.Tick += new System.EventHandler(this.timerMatchClock_Tick);
+            // 
+            // labelMinutes
+            // 
+            this.labelMinutes.AutoSize = true;
+            this.labelMinutes.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelMinutes.ForeColor = System.Drawing.Color.Blue;
+            this.labelMinutes.Location = new System.Drawing.Point(292, 47);
+            this.labelMinutes.Name = "labelMinutes";
+            this.labelMinutes.Size = new System.Drawing.Size(24, 16);
+            this.labelMinutes.TabIndex = 25;
+            this.labelMinutes.Text = "00";
+            // 
+            // labelColon
+            // 
+            this.labelColon.AutoSize = true;
+            this.labelColon.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelColon.ForeColor = System.Drawing.Color.Blue;
+            this.labelColon.Location = new System.Drawing.Point(313, 45);
+            this.labelColon.Name = "labelColon";
+            this.labelColon.Size = new System.Drawing.Size(12, 16);
+            this.labelColon.TabIndex = 26;
+            this.labelColon.Text = ":";
+            // 
+            // labelSeconds
+            // 
+            this.labelSeconds.AutoSize = true;
+            this.labelSeconds.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelSeconds.ForeColor = System.Drawing.Color.Blue;
+            this.labelSeconds.Location = new System.Drawing.Point(322, 47);
+            this.labelSeconds.Name = "labelSeconds";
+            this.labelSeconds.Size = new System.Drawing.Size(24, 16);
+            this.labelSeconds.TabIndex = 27;
+            this.labelSeconds.Text = "00";
+            // 
+            // panelGunOrientation
+            // 
+            this.panelGunOrientation.Location = new System.Drawing.Point(684, 274);
+            this.panelGunOrientation.Name = "panelGunOrientation";
+            this.panelGunOrientation.Size = new System.Drawing.Size(300, 300);
+            this.panelGunOrientation.TabIndex = 28;
+            this.panelGunOrientation.Paint += new System.Windows.Forms.PaintEventHandler(this.panelGunOrientation_Paint);
             // 
             // FormPilot
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1284, 662);
+            this.Controls.Add(this.panelGunOrientation);
+            this.Controls.Add(this.labelSeconds);
+            this.Controls.Add(this.labelColon);
+            this.Controls.Add(this.labelMinutes);
+            this.Controls.Add(this.labelHitPoints);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.labelPKeyArm);
             this.Controls.Add(this.checkBoxArm);
@@ -413,6 +481,12 @@
         private System.Windows.Forms.CheckBox checkBoxArm;
         private System.Windows.Forms.Label labelPKeyArm;
         private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label labelHitPoints;
+        private System.Windows.Forms.Timer timerMatchClock;
+        private System.Windows.Forms.Label labelMinutes;
+        private System.Windows.Forms.Label labelColon;
+        private System.Windows.Forms.Label labelSeconds;
+        private System.Windows.Forms.Panel panelGunOrientation;
     }
 }
 

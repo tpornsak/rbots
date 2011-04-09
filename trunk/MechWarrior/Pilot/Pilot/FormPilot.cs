@@ -9,12 +9,19 @@ using System.Windows.Forms;
 
 using AForge.Video;
 using AForge.Video.DirectShow;
+using AForge.Imaging;
+using AForge.Imaging.Filters;
+using AForge.Imaging.Textures;
 
 
 namespace CameraTrendnetAForge
 {
     public partial class FormPilot : Form
     {
+
+        // create filter
+        Mirror filterMirror = new Mirror(false,true);
+
         // statistics length
         private const int statLength = 15;
         // current statistics index
@@ -25,11 +32,15 @@ namespace CameraTrendnetAForge
         // fire gun variable, 0: No fire, 1: Fire
         private byte gunFire = 0x00;
 
+        // stop iscmdLeg = 0x01, forwad is cmdLeg = 0x02, 
+        private byte cmdLeg = 0x00;
+
         // length of command
         private const int cmdLength = 12;
         private int mousePrevX = 0;
         private int mousePrevY = 0;
         private bool mouseMoveInitFlag = false;
+        private bool armed = false;
 
         private double scaleMouseHeight = 0;
         private double scaleMouseWidth = 0;
@@ -37,8 +48,9 @@ namespace CameraTrendnetAForge
 
         // statistics array
         private int[] statCount = new int[statLength];
-
-        string cameraURL = "http://192.168.2.107/img/video.mjpeg";
+        string cameraURL = "http://172.16.143.104/img/video.mjpeg";
+        //string cameraURL = "http://192.168.2.175/img/video.mjpeg";
+        
         public FormPilot()
         {
             
@@ -54,6 +66,7 @@ namespace CameraTrendnetAForge
             try
             {
                 serialPortMech.Open();
+                //serialPortMech.Ti
             }
             catch (Exception ex)
             {
@@ -68,9 +81,9 @@ namespace CameraTrendnetAForge
                 MJPEGStream mjpegSource = new MJPEGStream(cameraURL);
                 textBoxDebug.AppendText("Camera URL" + System.Environment.NewLine);
                 textBoxDebug.AppendText(cameraURL + System.Environment.NewLine);
-                //mjpegSource.Login = "ben";
-                //mjpegSource.Password = "r4d4r4";
-               // mjpegSource.RequestTimeout = 2000;
+                mjpegSource.Login = "robotacronym";
+                mjpegSource.Password = "robotacronym";
+                //mjpegSource.RequestTimeout = 20000;
 
                 //mjpegSource.SeparateConnectionGroup = true;
                 // open it
@@ -102,6 +115,8 @@ namespace CameraTrendnetAForge
             // start timer
             timer.Start();
 
+         
+
             this.Cursor = Cursors.Default;
         }
 
@@ -112,7 +127,7 @@ namespace CameraTrendnetAForge
 
         private void mechCamera_Click(object sender, EventArgs e)
         {
-
+            
         }
 
         private void FormTrendnet_FormClosing(object sender, FormClosingEventArgs e)
@@ -138,6 +153,7 @@ namespace CameraTrendnetAForge
         private void mechCamera_NewFrame(object sender, ref Bitmap image)
         {
             DateTime now = DateTime.Now;
+            filterMirror.ApplyInPlace(image);
             Graphics g = Graphics.FromImage(image);
 
             // paint current time
@@ -147,9 +163,11 @@ namespace CameraTrendnetAForge
             // draw cross-hairs
             Pen pR = new Pen(Color.Red);
             
-            g.DrawLine(pR, 275.0f, 240.0f, 325.0f, 240.0f);
-            g.DrawLine(pR, 300.0f, 215.0f, 300.0f, 265.0f);
+            //g.DrawLine(pR, 137.0f, 120.0f, 173.0f, 120.0f);
+            //g.DrawLine(pR, 150.0f, 107.0f, 150.0f, 133.0f);
+            g.DrawRectangle(pR, 366.0f, 257.0f, 20.0f, 20.0f);
 
+            
 
             // must dispose !
             brush.Dispose();
@@ -188,80 +206,99 @@ namespace CameraTrendnetAForge
 
                 toolStripLabelFPS.Text = fps.ToString("F2") + " fps";
             }
+
+            textBoxFocus.AppendText(this.ActiveControl.ToString() + Environment.NewLine);
         }
 
         private void trackBar1_ValueChanged(object sender, EventArgs e)
         {
-            updateTurret();   
+            updateTurret();
+            mechCamera.Focus();
         }
 
         private void updateTurret()
         {
-            textBoxElPos.Text = trackBarElPos.Value.ToString();
-            textBoxElSpeed.Text = trackBarElSpeed.Value.ToString();
-            textBoxAzPos.Text = trackBarAzPos.Value.ToString();
-            textBoxAzSpeed.Text = trackBarAzSpeed.Value.ToString();
-            //short goalElPos = (short)(1023 * trackBarElPos.Value / 300);
-            //short goalElSpeed = (short)(1023 * trackBarElSpeed.Value / 114);
-            //short goalAzPos = (short)(1023 * trackBarAzPos.Value / 300);
-            //short goalAzSpeed = (short)(1023 * trackBarAzSpeed.Value / 114);
-            short goalElPos = (short) trackBarElPos.Value;
-            short goalElSpeed = (short) trackBarElSpeed.Value;
-            short goalAzPos = (short) trackBarAzPos.Value;
-            short goalAzSpeed = (short) trackBarAzSpeed.Value;
-            byte goalElPosLow = (byte)(goalElPos & 0xff);
-            byte goalElPosHigh = (byte)(goalElPos >> 8);
-            byte goalAzPosLow = (byte)(goalAzPos & 0xff);
-            byte goalAzPosHigh = (byte)(goalAzPos >> 8);
-            byte goalElSpeedLow = (byte)(goalElSpeed & 0xff);
-            byte goalElSpeedHigh = (byte)(goalElSpeed >> 8);
-            byte goalAzSpeedLow = (byte)(goalAzSpeed & 0xff);
-            byte goalAzSpeedHigh = (byte)(goalAzSpeed >> 8);
-
-            byte[] cmdBytes = new byte[cmdLength] { 0x2A, 0x00, 0x00, goalElPosLow, goalElPosHigh, goalElSpeedLow, goalElSpeedHigh,
-                                             goalAzPosLow, goalAzPosHigh, goalAzSpeedLow, goalAzSpeedHigh,  gunFire};
-            // reset gun to zero
-            gunFire = 0x00;
-
-            if (serialPortMech.IsOpen)
+            try
             {
-                serialPortMech.Write(cmdBytes, 0, cmdLength);
+                textBoxElPos.Text = trackBarElPos.Value.ToString();
+                textBoxElSpeed.Text = trackBarElSpeed.Value.ToString();
+                textBoxAzPos.Text = trackBarAzPos.Value.ToString();
+                textBoxAzSpeed.Text = trackBarAzSpeed.Value.ToString();
+                //short goalElPos = (short)(1023 * trackBarElPos.Value / 300);
+                //short goalElSpeed = (short)(1023 * trackBarElSpeed.Value / 114);
+                //short goalAzPos = (short)(1023 * trackBarAzPos.Value / 300);
+                //short goalAzSpeed = (short)(1023 * trackBarAzSpeed.Value / 114);
+                short goalElPos = (short) ( trackBarElPos.Maximum - trackBarElPos.Value + trackBarElPos.Minimum ) ;
+                short goalElSpeed = (short)trackBarElSpeed.Value;
+                short goalAzPos = (short) (trackBarAzPos.Maximum - trackBarAzPos.Value);
+                short goalAzSpeed = (short)trackBarAzSpeed.Value;
+                byte goalElPosLow = (byte)(goalElPos & 0xff);
+                byte goalElPosHigh = (byte)(goalElPos >> 8);
+                byte goalAzPosLow = (byte)(goalAzPos & 0xff);
+                byte goalAzPosHigh = (byte)(goalAzPos >> 8);
+                byte goalElSpeedLow = (byte)(goalElSpeed & 0xff);
+                byte goalElSpeedHigh = (byte)(goalElSpeed >> 8);
+                byte goalAzSpeedLow = (byte)(goalAzSpeed & 0xff);
+                byte goalAzSpeedHigh = (byte)(goalAzSpeed >> 8);
+
+                byte[] cmdBytes = new byte[cmdLength] { 0x2A, cmdLeg, 0x00, goalElPosLow, goalElPosHigh, goalElSpeedLow, goalElSpeedHigh,
+                                             goalAzPosLow, goalAzPosHigh, goalAzSpeedLow, goalAzSpeedHigh,  gunFire};
+                // reset gun to zero
+                gunFire = 0x00;
+
+                // reset legcmd to zero
+                cmdLeg = 0x00;
+
+                if (serialPortMech.IsOpen)
+                {
+                    serialPortMech.Write(cmdBytes, 0, cmdLength);
+                }
+
+
+                // textBoxDebug.AppendText(cmdBytes[0].ToString());
+
+                // for(int i=1;i < cmdLength;i++)
+                //     textBoxDebug.AppendText("," + cmdBytes[i].ToString());
+                //  textBoxDebug.AppendText(System.Environment.NewLine);
+
             }
-
-
-           // textBoxDebug.AppendText(cmdBytes[0].ToString());
-
-           // for(int i=1;i < cmdLength;i++)
-           //     textBoxDebug.AppendText("," + cmdBytes[i].ToString());
-           //  textBoxDebug.AppendText(System.Environment.NewLine);
-            
-
+            catch (Exception ex)
+            {
+                textBoxDebug.AppendText(ex.Message.ToString() + Environment.NewLine);
+            }
         }
 
         private void trackBarElSpeed_ValueChanged(object sender, EventArgs e)
         {
-            textBoxElSpeed.Text = trackBarElSpeed.Value.ToString();   
+            textBoxElSpeed.Text = trackBarElSpeed.Value.ToString();
+            mechCamera.Focus();
         }
 
         private void trackBarAzPos_ValueChanged(object sender, EventArgs e)
         {
-            updateTurret(); 
+            updateTurret();
+            mechCamera.Focus();
         }
 
         private void trackBarAzSpeed_ValueChanged(object sender, EventArgs e)
         {
             textBoxAzSpeed.Text = trackBarAzSpeed.Value.ToString();
+            mechCamera.Focus();
         }
 
         private void buttonFire_Click(object sender, EventArgs e)
         {
-            gunFire = 0x01;
-            updateTurret();
+            if (armed)
+            {
+                gunFire = 0x01;
+                updateTurret();
+            }
+            mechCamera.Focus();
         }
 
         private void checkBoxMouseControl_CheckedChanged(object sender, EventArgs e)
         {
-
+            mechCamera.Focus();
         }
 
         private void FormPilot_MouseMove(object sender, MouseEventArgs mouseCurrent)
@@ -271,16 +308,17 @@ namespace CameraTrendnetAForge
 
         private void FormPilot_MouseClick(object sender, MouseEventArgs e)
         {
-            if (checkBoxMouseControl.Checked)
-            {
-                // if left mouse was clicked, fire
-                if (e.Button == MouseButtons.Left)
-                {
-                    gunFire = 0x01;
-                    updateTurret();
-                }
+            //if (checkBoxMouseControl.Checked)
+            //{
+            //    // if left mouse was clicked, fire
+            //    if (e.Button == MouseButtons.Left)
+            //    {
+            //        gunFire = 0x01;
+            //        updateTurret();
+            //    }
 
-            }
+            //}
+            textBoxDebug.AppendText("mechCamera_Click_1" + System.Environment.NewLine);
             
         }
 
@@ -336,8 +374,227 @@ namespace CameraTrendnetAForge
 
         private void mechCamera_Click_1(object sender, EventArgs e)
         {
+            mechCamera.Focus();
    
+        }
 
+        private void FormPilot_KeyDown(object sender, KeyEventArgs e)
+        {
+            textBoxDebug.AppendText("FormPilot_KeyDown" + System.Environment.NewLine);
+        }
+
+        private void mechCamera_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyData == Keys.W)
+            {
+                cmdLeg = 0x02;
+            }
+            else if (e.KeyData == Keys.D)
+            {
+                cmdLeg = 0x01;
+            }
+            else if (e.KeyData == Keys.A)
+            {
+                cmdLeg = 0x03;
+            }
+            else if (e.KeyData == Keys.S)
+            {
+                cmdLeg = 0x04;
+            }
+            // If ready to arm check box is checked and key P was pressed,
+            // then arm the MechWarrior
+            else if (e.KeyData == Keys.P)
+            {
+                if (checkBoxArm.Checked)
+                {
+                    armed = true;
+                    labelArm.Text = "Armed";
+                    labelArm.ForeColor = Color.Red;
+                }
+            }
+            // DISARM MechWarrior if O key is pressed
+            else if (e.KeyData == Keys.O)
+            {
+                armed = false;
+                labelArm.Text = "Not Armed";
+                labelArm.ForeColor = Color.Green;
+                checkBoxArm.Checked = false;
+
+
+            }
+            else if (e.KeyData == Keys.Space)
+            {
+                if (checkBoxMouseControl.Checked)
+                {
+                    checkBoxMouseControl.Checked = false;
+                }
+                else
+                {
+                    checkBoxMouseControl.Checked = true;
+
+                }
+            }
+            else
+            {
+                cmdLeg = 0x00;
+            }
+            updateTurret();
+            textBoxDebug.AppendText("mechCamera_KeyDown" + System.Environment.NewLine);
+
+        }
+
+        private void textBoxDebug_KeyDown(object sender, KeyEventArgs e)
+        {
+            //if (e.KeyData == Keys.W)
+            //{
+            //    cmdLeg = 0x02;
+            //}
+            //else if (e.KeyData == Keys.Space)
+            //{
+            //    cmdLeg = 0x01;
+            //}
+
+            //updateTurret();
+            textBoxDebug.AppendText("textBoxDebug_KeyDown" + System.Environment.NewLine);
+        }
+
+        private void buttonFire_KeyDown(object sender, KeyEventArgs e)
+        {
+            //if (e.KeyData == Keys.W)
+            //{
+            //    cmdLeg = 0x02;
+            //}
+            //else if (e.KeyData == Keys.Space)
+            //{
+            //    cmdLeg = 0x01;
+            //}
+
+            //updateTurret();
+            textBoxDebug.AppendText("buttonFire_KeyDown" + System.Environment.NewLine);
+
+        }
+
+        private void trackBarElPos_MouseMove(object sender, MouseEventArgs e)
+        {
+
+        }
+
+        private void trackBarElSpeed_KeyDown(object sender, KeyEventArgs e)
+        {
+            //if (e.KeyData == Keys.W)
+            //{
+            //    cmdLeg = 0x02;
+            //}
+            //else if (e.KeyData == Keys.Space)
+            //{
+            //    cmdLeg = 0x01;
+            //}
+
+            //updateTurret();
+            textBoxDebug.AppendText("trackBarElSpeed_KeyDown" + System.Environment.NewLine);
+        }
+
+        private void trackBarElPos_KeyDown(object sender, KeyEventArgs e)
+        {
+            //if (e.KeyData == Keys.W)
+            //{
+            //    cmdLeg = 0x02;
+            //}
+            //else if (e.KeyData == Keys.Space)
+            //{
+            //    cmdLeg = 0x01;
+            //}
+
+            //updateTurret();
+            textBoxDebug.AppendText("Fire trackBarElPos_KeyDown" + System.Environment.NewLine);
+        }
+
+        private void trackBarAzPos_KeyDown(object sender, KeyEventArgs e)
+        {
+            //if (e.KeyData == Keys.W)
+            //{
+            //    cmdLeg = 0x02;
+            //}
+            //else if (e.KeyData == Keys.Space)
+            //{
+            //    cmdLeg = 0x01;
+            //}
+
+            //updateTurret();
+            textBoxDebug.AppendText("Fire trackBarElPos_KeyDown" + System.Environment.NewLine);
+
+        }
+
+        private void trackBarAzSpeed_KeyDown(object sender, KeyEventArgs e)
+        {
+            //if (e.KeyData == Keys.W)
+            //{
+            //    cmdLeg = 0x02;
+            //}
+            //else if (e.KeyData == Keys.S)
+            //{
+            //    cmdLeg = 0x01;
+            //}
+
+            //updateTurret();
+            textBoxDebug.AppendText("Fire trackBarElPos_KeyDown" + System.Environment.NewLine);
+
+        }
+
+        private void mechCamera_MouseDown(object sender, MouseEventArgs e)
+        {
+
+            textBoxDebug.AppendText("X Pos: " + e.X.ToString() + ", Y Pos: " + e.Y.ToString() + System.Environment.NewLine);
+
+            if (e.Button ==  MouseButtons.Right)
+            {
+                mechCamera.Focus();
+                checkBoxMouseControl.Checked = true;
+            }
+            else if (e.Button == MouseButtons.Left)
+            {
+                if (checkBoxMouseControl.Checked && armed)
+                {
+
+                    gunFire = 0x01;
+                    updateTurret();
+
+                }
+
+            }
+
+            textBoxDebug.AppendText("mechCamera_MouseDown" + System.Environment.NewLine);
+        }
+
+        private void checkBoxArm_CheckStateChanged(object sender, EventArgs e)
+        {
+            if (checkBoxArm.Checked)
+            {
+                labelArm.Text = "READY TO ARM";
+                labelArm.ForeColor = Color.MediumBlue;
+                mechCamera.Focus();
+            }
+            else
+            {
+                armed = false;
+                labelArm.Text = "NOT ARMED";
+                labelArm.ForeColor = Color.Green;
+                mechCamera.Focus();
+
+
+            }
+
+
+        }
+
+        private void labelPKeyArm_Click(object sender, EventArgs e)
+        {
+            mechCamera.Focus();
+        }
+
+        private void labelArm_Click(object sender, EventArgs e)
+        {
+            mechCamera.Focus();
         }
     }
 }

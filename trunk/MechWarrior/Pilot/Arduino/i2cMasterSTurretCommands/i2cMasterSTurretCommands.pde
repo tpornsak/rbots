@@ -13,6 +13,8 @@
 #define MASTER_ADDRESS 0x6
 // i2c address fot the platform stabilization subsystem
 #define STAB_PLATFORM_ADDRESS 0x7
+// i2c address for the walking base
+#define WALKING_BASE_ADDRESS 0x8
 
 #include <Wire.h>
 
@@ -40,7 +42,7 @@ byte gunFire;
 void setup()
 {
   Wire.begin(MASTER_ADDRESS);  // join i2c bus and assign address 0x6
-  Serial.begin(9600);  // start serial for output
+  Serial.begin(115200);  // start serial for output
   Serial.print('A', BYTE);
   //establishContact();  // send a byte to establish contact until receiver responds 
 }
@@ -80,6 +82,12 @@ void loop()
         
         // stub for sending leg commands over i2c
 
+        // send led test byte over i2c to the walking subsystem
+        Wire.beginTransmission(WALKING_BASE_ADDRESS); 
+        Wire.send(legActionByte);    
+        Wire.endTransmission();
+        
+       // delay(25);
         
         // send turret bytes over i2c to the turret subsystem
         Wire.beginTransmission(STAB_PLATFORM_ADDRESS); 
@@ -93,6 +101,7 @@ void loop()
         Wire.send(turretAzSpeedHigh); 
         Wire.send(gunFire); 
         Wire.endTransmission();
+        
         
         Serial.print(turretElPosLow,DEC); 
         Serial.print(','); 

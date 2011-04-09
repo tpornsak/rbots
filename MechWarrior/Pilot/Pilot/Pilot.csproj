@@ -53,6 +53,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\..\Program Files\AForge.NET\Framework\Release\AForge.Controls.dll</HintPath>
     </Reference>
+    <Reference Include="AForge.Imaging">
+      <HintPath>..\..\Program Files (x86)\AForge.NET\Framework\Release\AForge.Imaging.dll</HintPath>
+    </Reference>
     <Reference Include="AForge.Video, Version=2.1.2.0, Culture=neutral, PublicKeyToken=cbfb6e07d173c401, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\..\Program Files\AForge.NET\Framework\Release\AForge.Video.dll</HintPath>

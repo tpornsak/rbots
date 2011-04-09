@@ -27,10 +27,17 @@ const int analogGyroElPin = 0;
 int gyroEl = 0;
 
 // enable pin for half-duplex communication with the AX-12 motors
-int xmtEn = 2;
+int xmtEn = 7;
 
 // MechWarrior's gun fire pin
 int gunPin = 3;
+
+// Hopper motor control pin
+int hopperPin = 8;
+
+// MechWarrior's Laser pointer pin
+int laserPin = 5;
+
 // flag to fire gun, received via i2c
 byte gunFire = 0x00;
 // led on packet Azimuth motor
@@ -39,18 +46,42 @@ byte ledOnEl[8] = {0xff, 0xff, 0x02, 0x04, 0x03, 0x19, 0x01, 0x00};
 byte ledOffEl[8] = {0xff, 0xff, 0x02, 0x04, 0x03, 0x19, 0x00, 0x00};
 
 // 180 goal position with max speed ~113 RPM  1.9 deg/s
-byte goal240[11] = {0xff, 0xff, 0x01, 0x07, 0x03, 0x1E, 0x00, 0x02, 0x00, 0x02, 0x00};
+byte goal240[11] = {0xff, 0xff, 0x03, 0x07, 0x03, 0x1E, 0x00, 0x02, 0x00, 0x02, 0x00};
 // 180 goal position with max speed ~113 RPM  1.9 deg/s
 byte goal60[11] = {0xff, 0xff, 0x02, 0x07, 0x03, 0x1E, 0x00, 0x01, 0x00, 0x02, 0x00};
 
 //Torque Enable Azimuth Motor
 byte tqEnEl[8] = {0xff,0xff,0x02,0x04,0x03,0x18,0x01,0x00};
-byte tqEnAz[8] = {0xff,0xff,0x01,0x04,0x03,0x18,0x01,0x00};
+byte tqEnAz[8] = {0xff,0xff,0x03,0x04,0x03,0x18,0x01,0x00};
+
+/* Removing continuous motion for the AX-12 motors is done by setting 
+values for the CW Angle Limit an the CCW Angle Limit 
+
+0x06:  CW Angle Limit (L)
+0x07:  CW Angle Limit (H)
+0x08:  CCW Angle Limit (L)
+0x09:  CCW Angle Limit (H)
+
+Set continuous mode address through 06-09
+*/
+//Non-Continuous (Endless Turn) Mode on motor ID 01, set CW and CCW to full 
+// 300 degree limit by passing 0x3ff, high byte FF, low byte 03
+byte continuous01[11] = {0xff,0xff,0x03,0x07,0x03,0x06,0xFF,0x03,0xFF,0x03,0x00};
+
+//Continuous (Endless Turn) Mode on right motor
+byte continuous02[11] = {0xff,0xff,0x02,0x07,0x03,0x06,0xFF,0x03,0xFF,0x03,0x00};
 
 void setup()
 {
   pinMode(xmtEn, OUTPUT);  // output enables half duplex transmit buffer 
-  pinMode(gunPin, OUTPUT);  // output enables half duplex transmit buffer 
+  pinMode(gunPin, OUTPUT);  
+  pinMode(hopperPin, OUTPUT); 
+  pinMode(laserPin, OUTPUT); 
+  
+  digitalWrite(gunPin, LOW);   // turn the gun off
+  digitalWrite(laserPin, LOW);
+  digitalWrite(hopperPin, LOW);    
+  
   Serial.begin(1000000);    // sets 1 Mbps baudrate for uart
  //Serial.begin(9600); 
   //calculate checksum
@@ -60,6 +91,14 @@ void setup()
   tqEnAz[7] =  ~(tqEnAz[2]+tqEnAz[3]+tqEnAz[4]+tqEnAz[5]+tqEnAz[6]);
   goal240[10] = ~(goal240[2]+goal240[3]+goal240[4]+goal240[5]+goal240[6] + goal240[7] + goal240[8] + goal240[9]);
   goal60[10] = ~(goal60[2]+goal60[3]+goal60[4]+goal60[5]+goal60[6] + goal60[7] + goal60[8] + goal60[9]); 
+   continuous01[10] = ~(continuous01[2] + continuous01[3] + continuous01[4] + 
+                                continuous01[5] + continuous01[6] + continuous01[7] +
+                                continuous01[8] + continuous01[9]);
+
+  continuous02[10] = ~(continuous02[2] + continuous02[3] + continuous02[4] + 
+                                continuous02[5] + continuous02[6] + continuous02[7] +
+                                continuous02[8] + continuous02[9]); 
+ 
   
   //Enable motor 1
   digitalWrite(xmtEn, HIGH); //Enables transmit buffer
@@ -77,6 +116,23 @@ void setup()
   digitalWrite(xmtEn, LOW);  //Disables transmit buffer, saw it on the scope
   delay(5);                  //5ms follows the pot smoothly, 100ms is jumpy, emperical
   
+    // set continous rotation motor 1
+  digitalWrite(xmtEn, HIGH);  // enable transmit buffer
+  for(int i = 0; i < 11; i++)
+    Serial.write(continuous01[i]);
+  delay(0);                   // need this 0 delay for the transmission to complete
+  digitalWrite(xmtEn, LOW);   // disables transmit buffer
+  delay(5);                  //5ms follows the pot smoothly, 100ms is jumpy, emperical
+  
+  // set continous rotation motor 2
+  digitalWrite(xmtEn, HIGH);  // enable transmit buffer
+  for(int i = 0; i < 11; i++)
+    Serial.write(continuous02[i]);
+  delay(0);                   // need this 0 delay for the transmission to complete
+  digitalWrite(xmtEn, LOW);   // disables transmit buffer
+  delay(5);                  //5ms follows the pot smoothly, 100ms is jumpy, emperical
+  
+  
   Wire.begin(STAB_PLATFORM_ADDRESS);  // join i2c bus with address 0x7
   //Wire.onRequest(requestEvent); // register event
   Wire.onReceive(receiveEvent); // register event
@@ -84,15 +140,30 @@ void setup()
 
 void loop()
 {
+//  digitalWrite(hopperPin, HIGH);
+//  delay(3000);
+//  digitalWrite(hopperPin, LOW);
+//  delay(3000);
   // if byte is 0x01, then fire the gun
+  
+  
   if (gunFire == 0x01)
   {
+      //digitalWrite(laserPin, LOW);
       digitalWrite(gunPin, HIGH);  // set the gun pin to on
+      digitalWrite(hopperPin, HIGH);
       delay(1200);
       digitalWrite(gunPin, LOW);   // turn the gun off
-      delay(1200);
+      digitalWrite(hopperPin, LOW);
+      //digitalWrite(laserPin, HIGH);
+      delay(200);
       gunFire = 0x00;
   }
+  
+   //digitalWrite(hopperPin, HIGH);
+   //delay(2000);
+   //digitalWrite(hopperPin, LOW);
+  
   //delayMicroseconds(50);   
   // read the analog in value:
   //gyroEl = analogRead(analogGyroElPin); 

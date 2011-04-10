@@ -648,5 +648,31 @@ namespace CameraTrendnetAForge
             grfx.Dispose();
             
         }
+
+        private void serialPortMech_DataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
+        {
+            try
+            {
+                string strHitpoints = serialPortMech.ReadLine();
+                string strHitPanel = serialPortMech.ReadLine();
+
+                if (strHitpoints != null)
+                {
+                    hitPoints = int.Parse(strHitpoints);
+                    labelHitPoints.Text = hitPoints.ToString();
+                }
+
+                if (strHitPanel != null)
+                {
+                    hitPoints = int.Parse(strHitPanel);
+                    labelTargetPlate.Text = hitPoints.ToString();
+                }
+                
+            }
+            catch (Exception ex)
+            {
+                textBoxDebug.AppendText(ex.Message.ToString());
+            }
+        }
     }
 }

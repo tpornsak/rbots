@@ -23,6 +23,30 @@
 // start negative an invalid analog reading
 int gyroEL = -999;
 
+// target sensor input pin, used as interrupt 
+// to read which target sensor was hit
+int targetSensor = 0;
+
+// hitReport is a status counter to report hits
+int hitReport;
+// hitEvent is a status counter to time hits
+int hitEvent;
+
+//Volatile: Specifically, it directs the compiler to load the variable from RAM 
+//and not from a storage register, which is a temporary memory 
+//location where program variables are stored and manipulated. 
+//Under certain conditions, the value for a variable stored in registers can be inaccurate.
+// maybe a speed improvement also
+// 1:
+// 2:
+// 3:
+// 4:
+volatile int hitPlate;
+// number of times it has been hit
+volatile int hitCount;
+// calculates the length of the interrupt pulse which corresponds to which target plate was hit
+unsigned long hitTime;
+
 // command message from host PC to master i2c 
 byte cmdByte1;
 byte cmdByte2;
@@ -43,7 +67,11 @@ void setup()
 {
   Wire.begin(MASTER_ADDRESS);  // join i2c bus and assign address 0x6
   Serial.begin(115200);  // start serial for output
-  Serial.print('A', BYTE);
+  attachInterrupt(targetSensor, interruptTargetHit, CHANGE);
+  hitCount = 20;
+  hitReport = 0;
+  hitEvent = 0;
+  //Serial.print('A', BYTE);
   //establishContact();  // send a byte to establish contact until receiver responds 
 }
 
@@ -101,34 +129,52 @@ void loop()
         Wire.send(turretAzSpeedHigh); 
         Wire.send(gunFire); 
         Wire.endTransmission();
-        
-        
-        Serial.print(turretElPosLow,DEC); 
-        Serial.print(','); 
-        Serial.print(turretElPosHigh,DEC); 
-        Serial.print(','); 
-        Serial.print(turretElSpeedLow,DEC); 
-        Serial.print(','); 
-        Serial.print(turretElSpeedHigh,DEC); 
-        Serial.print(','); 
-        Serial.print(turretAzPosLow,DEC); 
-        Serial.print(','); 
-        Serial.print(turretAzPosHigh,DEC); 
-        Serial.print(','); 
-        Serial.print(turretAzSpeedLow,DEC); 
-        Serial.print(','); 
-        Serial.println(turretAzSpeedHigh,DEC); 
-        Serial.print(','); 
-        Serial.print(gunFire,DEC); 
+//        Serial.print(turretElPosLow,DEC); 
+//        Serial.print(','); 
+//        Serial.print(turretElPosHigh,DEC); 
+//        Serial.print(','); 
+//        Serial.print(turretElSpeedLow,DEC); 
+//        Serial.print(','); 
+//        Serial.print(turretElSpeedHigh,DEC); 
+//        Serial.print(','); 
+//        Serial.print(turretAzPosLow,DEC); 
+//        Serial.print(','); 
+//        Serial.print(turretAzPosHigh,DEC); 
+//        Serial.print(','); 
+//        Serial.print(turretAzSpeedLow,DEC); 
+//        Serial.print(','); 
+//        Serial.println(turretAzSpeedHigh,DEC); 
+//        Serial.print(','); 
+//        Serial.print(gunFire,DEC); 
         //Serial.flush();
         
     }
     else
     {
-      Serial.println('E', BYTE); 
+     // Serial.println('-1'); 
     }
-            
+    
+    if (hitReport > 0)  {
+            Serial.println(hitCount);
+            Serial.println(hitPlate);
+            hitReport = 0;
+    }        
    
+}
+
+void interruptTargetHit()  {
+  if(hitEvent < 1)  {  // line went high, this is a hit
+    hitTime = millis();
+    hitCount--;
+    hitEvent = 1;  } 
+    else  {
+    hitTime = millis() - hitTime;
+    hitPlate = hitTime/50;
+    // reset to check for signal to go high
+    hitEvent = 0;
+    // let the main loop know to report a hit
+    hitReport = 1;
+    }
 }
 
 void establishContact() {

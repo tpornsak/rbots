@@ -13,6 +13,7 @@
 // Created 21 March 2010
 // Ben Loftin
 // GPL 3.0 or greater
+#include <Bounce.h>
 
 // i2c address fot the platform stabilization subsystem
 #define STAB_PLATFORM_ADDRESS 0x7
@@ -31,6 +32,14 @@ int xmtEn = 7;
 
 // MechWarrior's gun fire pin
 int gunPin = 3;
+
+// digital input pin for the gun sensor which
+// lets us know when the gun has finished firing
+int gunSensor = 2;
+// Instantiate a Bounce object with a 5 millisecond debounce time
+// for the gun sensor signal
+Bounce bouncer = Bounce( gunSensor,100 ); 
+int stateFiring = 0;
 
 // Hopper motor control pin
 int hopperPin = 8;
@@ -77,10 +86,13 @@ void setup()
   pinMode(gunPin, OUTPUT);  
   pinMode(hopperPin, OUTPUT); 
   pinMode(laserPin, OUTPUT); 
+  pinMode(gunSensor, INPUT);
   
   digitalWrite(gunPin, LOW);   // turn the gun off
   digitalWrite(laserPin, LOW);
-  digitalWrite(hopperPin, LOW);    
+  digitalWrite(hopperPin, LOW);  
+  
+  //attachInterrupt(gunIntPin, interruptGunFiringDone, RISING);
   
   Serial.begin(1000000);    // sets 1 Mbps baudrate for uart
  //Serial.begin(9600); 
@@ -140,24 +152,29 @@ void setup()
 
 void loop()
 {
-//  digitalWrite(hopperPin, HIGH);
-//  delay(3000);
-//  digitalWrite(hopperPin, LOW);
-//  delay(3000);
-  // if byte is 0x01, then fire the gun
+  // Update the debouncer
+  bouncer.update ( );
+  // Get the update value
+  int valueFall = bouncer.fallingEdge();
+  if ( valueFall == HIGH) {
+    stateFiring = 1;
+  }
+  int valueRise = bouncer.risingEdge();
   
-  
+  // Turn off gun
+  if ( valueRise == HIGH && stateFiring == 1) {
+      digitalWrite(gunPin, LOW);  // set the gun pin to on
+      digitalWrite(hopperPin, LOW);
+      gunFire = 0x00;  
+      stateFiring = 0;
+  } 
+
   if (gunFire == 0x01)
   {
       //digitalWrite(laserPin, LOW);
       digitalWrite(gunPin, HIGH);  // set the gun pin to on
       digitalWrite(hopperPin, HIGH);
-      delay(1200);
-      digitalWrite(gunPin, LOW);   // turn the gun off
-      digitalWrite(hopperPin, LOW);
-      //digitalWrite(laserPin, HIGH);
-      delay(200);
-      gunFire = 0x00;
+      gunFire = 0x00;     
   }
   
    //digitalWrite(hopperPin, HIGH);
@@ -287,6 +304,13 @@ void receiveEvent(int howMany)
 //  goal60[7] = goal240[7];
   //Serial.println(cmdElLow,DEC);
   //Serial.println(cmdElHigh,DEC);
+}
+
+void interruptGunFiringDone()  {
+  //digitalWrite(gunPin, LOW);   // turn the gun off
+  //digitalWrite(hopperPin, LOW);
+  gunFire = 0x00;  
+  
 }
 
  

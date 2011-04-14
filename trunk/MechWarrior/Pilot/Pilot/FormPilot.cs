@@ -75,6 +75,7 @@ namespace CameraTrendnetAForge
             try
             {
                 serialPortMech.Open();
+                //serialPortMech.WriteTimeout = 4000;
                 //serialPortMech.Ti
             }
             catch (Exception ex)
@@ -92,7 +93,7 @@ namespace CameraTrendnetAForge
                 textBoxDebug.AppendText(cameraURL + System.Environment.NewLine);
                 mjpegSource.Login = "robotacronym";
                 mjpegSource.Password = "robotacronym";
-                //mjpegSource.RequestTimeout = 20000;
+                //mjpegSource.RequestTimeout = 5000;
 
                 //mjpegSource.SeparateConnectionGroup = true;
                 // open it
@@ -145,8 +146,9 @@ namespace CameraTrendnetAForge
             {
                 if (mechCamera.VideoSource != null)
                 {
-                   mechCamera.SignalToStop();
-                   mechCamera.WaitForStop();
+                    mechCamera.SignalToStop();
+                    //mechCamera.WaitForStop();
+                    //mechCamera.Stop();
                 }
                 if (serialPortMech.IsOpen)
                 {
@@ -232,7 +234,8 @@ namespace CameraTrendnetAForge
                 //short goalAzSpeed = (short)(1023 * trackBarAzSpeed.Value / 114);
                 short goalElPos = (short) ( trackBarElPos.Maximum - trackBarElPos.Value + trackBarElPos.Minimum ) ;
                 short goalElSpeed = (short)trackBarElSpeed.Value;
-                short goalAzPos = (short) (trackBarAzPos.Maximum - trackBarAzPos.Value);
+                short goalAzPos = (short)(trackBarAzPos.Maximum - trackBarAzPos.Value + trackBarAzPos.Minimum);
+               // short goalAzPos = (short)(trackBarAzPos.Value);
                 short goalAzSpeed = (short)trackBarAzSpeed.Value;
                 byte goalElPosLow = (byte)(goalElPos & 0xff);
                 byte goalElPosHigh = (byte)(goalElPos >> 8);
@@ -391,7 +394,7 @@ namespace CameraTrendnetAForge
         {
              if (e.KeyData == Keys.W)
             {
-                cmdLeg = 0x02;
+                cmdLeg = 0x05;
             }
             else if (e.KeyData == Keys.D)
             {
@@ -403,49 +406,57 @@ namespace CameraTrendnetAForge
             }
             else if (e.KeyData == Keys.S)
             {
+                cmdLeg = 0x06;
+            }
+            else if (e.KeyData == Keys.E)
+            {
+                cmdLeg = 0x02;
+            }
+            else if (e.KeyData == Keys.Q)
+            {
                 cmdLeg = 0x04;
             }
-            // If ready to arm check box is checked and key P was pressed,
-            // then arm the MechWarrior
-            else if (e.KeyData == Keys.P)
-            {
-                if (checkBoxArm.Checked)
-                {
-                    armed = true;
-                    labelArm.Text = "Armed";
-                    labelArm.ForeColor = Color.Red;
-                }
-            }
-            // DISARM MechWarrior if O key is pressed
-            else if (e.KeyData == Keys.O)
-            {
-                armed = false;
-                labelArm.Text = "Not Armed";
-                labelArm.ForeColor = Color.Green;
-                checkBoxArm.Checked = false;
+             // If ready to arm check box is checked and key P was pressed,
+             // then arm the MechWarrior
+             else if (e.KeyData == Keys.P)
+             {
+                 if (checkBoxArm.Checked)
+                 {
+                     armed = true;
+                     labelArm.Text = "Armed";
+                     labelArm.ForeColor = Color.Red;
+                 }
+             }
+             // DISARM MechWarrior if O key is pressed
+             else if (e.KeyData == Keys.O)
+             {
+                 armed = false;
+                 labelArm.Text = "Not Armed";
+                 labelArm.ForeColor = Color.Green;
+                 checkBoxArm.Checked = false;
 
 
-            }
-            else if (e.KeyData == Keys.Space)
-            {
-                if (checkBoxMouseControl.Checked)
-                {
-                    checkBoxMouseControl.Checked = false;
-                }
-                else
-                {
-                    checkBoxMouseControl.Checked = true;
+             }
+             else if (e.KeyData == Keys.Space)
+             {
+                 if (checkBoxMouseControl.Checked)
+                 {
+                     checkBoxMouseControl.Checked = false;
+                 }
+                 else
+                 {
+                     checkBoxMouseControl.Checked = true;
 
-                }
-            }
-            else if (e.KeyCode == Keys.L)
-            {
-                timerMatchClock.Start();
-            }
-            else
-            {
-                cmdLeg = 0x00;
-            }
+                 }
+             }
+             else if (e.KeyCode == Keys.L)
+             {
+                 timerMatchClock.Start();
+             }
+             else
+             {
+                 cmdLeg = 0x00;
+             }
             updateTurret();
             textBoxDebug.AppendText("mechCamera_KeyDown" + System.Environment.NewLine);
 
@@ -644,6 +655,30 @@ namespace CameraTrendnetAForge
 
             // draw gun barrel, update based on orientation
             grfx.DrawLine(redPen,xp1,yp1,xp2,yp2);
+
+            // draw last target hit
+            if (labelTargetPlate.Text == "1")
+            {
+                // back right
+                grfx.DrawLine(redPen, 260, 300, 300, 260);
+            }
+            else if (labelTargetPlate.Text == "2")
+            {
+                // top right
+                grfx.DrawLine(redPen, 260, 0, 300, 40);
+            }
+            else if (labelTargetPlate.Text == "3")
+            {
+                // top left
+                grfx.DrawLine(redPen, 40, 0, 0, 40);
+            }
+            else if (labelTargetPlate.Text == "4")
+            {
+                // bottom left
+                grfx.DrawLine(redPen, 40, 300, 0, 260);
+            }
+
+
             redPen.Dispose();
             grfx.Dispose();
             
@@ -651,28 +686,38 @@ namespace CameraTrendnetAForge
 
         private void serialPortMech_DataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
         {
+            // read from bot
             try
             {
-                string strHitpoints = serialPortMech.ReadLine();
-                string strHitPanel = serialPortMech.ReadLine();
-
-                if (strHitpoints != null)
+                if (serialPortMech.BytesToRead > 1)
                 {
-                    hitPoints = int.Parse(strHitpoints);
-                    labelHitPoints.Text = hitPoints.ToString();
-                }
+                    byte[] recBytes = new byte[2];
+                    serialPortMech.Read(recBytes, 0, 2);
 
-                if (strHitPanel != null)
-                {
-                    hitPoints = int.Parse(strHitPanel);
-                    labelTargetPlate.Text = hitPoints.ToString();
+                    labelHitPoints.Text = recBytes[0].ToString();
+                    labelTargetPlate.Text = recBytes[1].ToString();
+                    serialPortMech.DiscardInBuffer();
                 }
-                
+                //string strTargetBoards = serialPortMech.ReadLine();
+               // string strHitPanel = serialPortMech.ReadLine();
+
+                //if (strHitpoints != null)
+                //{
+                //    hitPoints = int.Parse(strHitpoints);
+                //    labelHitPoints.Text = hitPoints.ToString();
+                //}
+
+                //if (strHitPanel != null)
+                //{
+                //    hitPoints = int.Parse(strHitPanel);
+                //    labelTargetPlate.Text = hitPoints.ToString();
+                //}
             }
             catch (Exception ex)
             {
-                textBoxDebug.AppendText(ex.Message.ToString());
+                textBoxDebug.AppendText(ex.Message.ToString() + Environment.NewLine);
             }
+           
         }
     }
 }

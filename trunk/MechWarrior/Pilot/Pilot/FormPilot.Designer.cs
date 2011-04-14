@@ -134,13 +134,13 @@
             // trackBarElPos
             // 
             this.trackBarElPos.Location = new System.Drawing.Point(871, 74);
-            this.trackBarElPos.Maximum = 839;
-            this.trackBarElPos.Minimum = 400;
+            this.trackBarElPos.Maximum = 870;
+            this.trackBarElPos.Minimum = 480;
             this.trackBarElPos.Name = "trackBarElPos";
             this.trackBarElPos.Size = new System.Drawing.Size(230, 45);
             this.trackBarElPos.TabIndex = 4;
             this.trackBarElPos.TickStyle = System.Windows.Forms.TickStyle.None;
-            this.trackBarElPos.Value = 679;
+            this.trackBarElPos.Value = 650;
             this.trackBarElPos.ValueChanged += new System.EventHandler(this.trackBar1_ValueChanged);
             this.trackBarElPos.KeyDown += new System.Windows.Forms.KeyEventHandler(this.trackBarElPos_KeyDown);
             this.trackBarElPos.MouseMove += new System.Windows.Forms.MouseEventHandler(this.trackBarElPos_MouseMove);
@@ -167,18 +167,19 @@
             // serialPortMech
             // 
             this.serialPortMech.BaudRate = 115200;
-            this.serialPortMech.PortName = "COM6";
+            this.serialPortMech.PortName = "COM4";
             this.serialPortMech.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(this.serialPortMech_DataReceived);
             // 
             // trackBarAzPos
             // 
             this.trackBarAzPos.Location = new System.Drawing.Point(871, 157);
-            this.trackBarAzPos.Maximum = 1023;
+            this.trackBarAzPos.Maximum = 818;
+            this.trackBarAzPos.Minimum = 204;
             this.trackBarAzPos.Name = "trackBarAzPos";
             this.trackBarAzPos.Size = new System.Drawing.Size(230, 45);
             this.trackBarAzPos.TabIndex = 7;
             this.trackBarAzPos.TickStyle = System.Windows.Forms.TickStyle.None;
-            this.trackBarAzPos.Value = 511;
+            this.trackBarAzPos.Value = 512;
             this.trackBarAzPos.ValueChanged += new System.EventHandler(this.trackBarAzPos_ValueChanged);
             this.trackBarAzPos.KeyDown += new System.Windows.Forms.KeyEventHandler(this.trackBarAzPos_KeyDown);
             // 
@@ -229,7 +230,7 @@
             this.trackBarElSpeed.Size = new System.Drawing.Size(230, 45);
             this.trackBarElSpeed.TabIndex = 10;
             this.trackBarElSpeed.TickStyle = System.Windows.Forms.TickStyle.None;
-            this.trackBarElSpeed.Value = 75;
+            this.trackBarElSpeed.Value = 150;
             this.trackBarElSpeed.ValueChanged += new System.EventHandler(this.trackBarElSpeed_ValueChanged);
             this.trackBarElSpeed.KeyDown += new System.Windows.Forms.KeyEventHandler(this.trackBarElSpeed_KeyDown);
             // 
@@ -261,7 +262,7 @@
             this.trackBarAzSpeed.Size = new System.Drawing.Size(230, 45);
             this.trackBarAzSpeed.TabIndex = 13;
             this.trackBarAzSpeed.TickStyle = System.Windows.Forms.TickStyle.None;
-            this.trackBarAzSpeed.Value = 75;
+            this.trackBarAzSpeed.Value = 150;
             this.trackBarAzSpeed.ValueChanged += new System.EventHandler(this.trackBarAzSpeed_ValueChanged);
             this.trackBarAzSpeed.KeyDown += new System.Windows.Forms.KeyEventHandler(this.trackBarAzSpeed_KeyDown);
             // 
@@ -353,11 +354,11 @@
             this.labelHitPoints.AutoSize = true;
             this.labelHitPoints.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelHitPoints.ForeColor = System.Drawing.Color.Blue;
-            this.labelHitPoints.Location = new System.Drawing.Point(677, 74);
+            this.labelHitPoints.Location = new System.Drawing.Point(677, 83);
             this.labelHitPoints.Name = "labelHitPoints";
-            this.labelHitPoints.Size = new System.Drawing.Size(55, 37);
+            this.labelHitPoints.Size = new System.Drawing.Size(36, 37);
             this.labelHitPoints.TabIndex = 24;
-            this.labelHitPoints.Text = "20";
+            this.labelHitPoints.Text = "0";
             // 
             // timerMatchClock
             // 
@@ -410,7 +411,7 @@
             this.labelTargetPlate.AutoSize = true;
             this.labelTargetPlate.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelTargetPlate.ForeColor = System.Drawing.Color.Blue;
-            this.labelTargetPlate.Location = new System.Drawing.Point(677, 123);
+            this.labelTargetPlate.Location = new System.Drawing.Point(677, 137);
             this.labelTargetPlate.Name = "labelTargetPlate";
             this.labelTargetPlate.Size = new System.Drawing.Size(36, 37);
             this.labelTargetPlate.TabIndex = 29;
@@ -419,16 +420,16 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(729, 80);
+            this.label3.Location = new System.Drawing.Point(681, 70);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(22, 13);
+            this.label3.Size = new System.Drawing.Size(25, 13);
             this.label3.TabIndex = 30;
-            this.label3.Text = "HP";
+            this.label3.Text = "Hits";
             // 
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(729, 132);
+            this.label4.Location = new System.Drawing.Point(681, 124);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(21, 13);
             this.label4.TabIndex = 31;

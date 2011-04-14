@@ -32,6 +32,9 @@ int hitReport;
 // hitEvent is a status counter to time hits
 int hitEvent;
 
+// low battery input pin, needed to not kill the liPoly
+int lowBatteryPin = 8;
+
 //Volatile: Specifically, it directs the compiler to load the variable from RAM 
 //and not from a storage register, which is a temporary memory 
 //location where program variables are stored and manipulated. 
@@ -41,9 +44,10 @@ int hitEvent;
 // 2:
 // 3:
 // 4:
-volatile int hitPlate;
+byte hitPlate = 0x00;
+int hitPlateInt = 0;
 // number of times it has been hit
-volatile int hitCount;
+byte hitCount = 0x00;
 // calculates the length of the interrupt pulse which corresponds to which target plate was hit
 unsigned long hitTime;
 
@@ -67,8 +71,11 @@ void setup()
 {
   Wire.begin(MASTER_ADDRESS);  // join i2c bus and assign address 0x6
   Serial.begin(115200);  // start serial for output
+  //Serial.begin(9600);  // start serial for output
+  pinMode(lowBatteryPin, INPUT);
+  
   attachInterrupt(targetSensor, interruptTargetHit, CHANGE);
-  hitCount = 20;
+  //hitCount = 20;
   hitReport = 0;
   hitEvent = 0;
   //Serial.print('A', BYTE);
@@ -77,7 +84,12 @@ void setup()
 
 void loop()
 {
-   Serial.flush();
+   int readLowBatt = digitalRead(lowBatteryPin);
+    // only do something if the liPoly is above 10v
+   if ( readLowBatt == LOW)
+   {
+     
+     Serial.flush();
   // request 2 bytes (a word) from stab subsystem
   //Wire.requestFrom(STAB_PLATFORM_ADDRESS, 2);   
   // if we get a valid byte, read analog ins:
@@ -129,6 +141,14 @@ void loop()
         Wire.send(turretAzSpeedHigh); 
         Wire.send(gunFire); 
         Wire.endTransmission();
+        
+        if (hitReport > 0)  {
+            //Serial.flush();
+            Serial.print(hitCount,BYTE);
+            Serial.println(hitPlate,BYTE);
+            hitReport = 0;
+        }
+
 //        Serial.print(turretElPosLow,DEC); 
 //        Serial.print(','); 
 //        Serial.print(turretElPosHigh,DEC); 
@@ -151,29 +171,43 @@ void loop()
     }
     else
     {
-     // Serial.println('-1'); 
-    }
-    
-    if (hitReport > 0)  {
-            Serial.println(hitCount);
-            Serial.println(hitPlate);
-            hitReport = 0;
-    }        
-   
+     ;// Serial.println('-1'); 
+    }      
+     
+   } 
 }
 
 void interruptTargetHit()  {
   if(hitEvent < 1)  {  // line went high, this is a hit
     hitTime = millis();
-    hitCount--;
+    hitCount++;
     hitEvent = 1;  } 
     else  {
     hitTime = millis() - hitTime;
-    hitPlate = hitTime/50;
-    // reset to check for signal to go high
-    hitEvent = 0;
+    hitPlateInt = hitTime/50;
     // let the main loop know to report a hit
     hitReport = 1;
+    switch (hitPlateInt)
+    {
+      case 1:
+        hitPlate = 0x01;
+        break;
+      case 2:
+        hitPlate = 0x02;
+        break;
+      case 3:
+        hitPlate = 0x03;
+        break;
+      case 4:
+        hitPlate = 0x04;
+        break;
+      default:
+        hitReport = 0;
+      
+    }
+    // reset to check for signal to go high
+    hitEvent = 0;
+    
     }
 }
 

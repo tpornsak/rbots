@@ -129,20 +129,20 @@ void setup()
   delay(5);                  //5ms follows the pot smoothly, 100ms is jumpy, emperical
   
     // set continous rotation motor 1
-  digitalWrite(xmtEn, HIGH);  // enable transmit buffer
-  for(int i = 0; i < 11; i++)
-    Serial.write(continuous01[i]);
-  delay(0);                   // need this 0 delay for the transmission to complete
-  digitalWrite(xmtEn, LOW);   // disables transmit buffer
-  delay(5);                  //5ms follows the pot smoothly, 100ms is jumpy, emperical
-  
-  // set continous rotation motor 2
-  digitalWrite(xmtEn, HIGH);  // enable transmit buffer
-  for(int i = 0; i < 11; i++)
-    Serial.write(continuous02[i]);
-  delay(0);                   // need this 0 delay for the transmission to complete
-  digitalWrite(xmtEn, LOW);   // disables transmit buffer
-  delay(5);                  //5ms follows the pot smoothly, 100ms is jumpy, emperical
+//  digitalWrite(xmtEn, HIGH);  // enable transmit buffer
+//  for(int i = 0; i < 11; i++)
+//    Serial.write(continuous01[i]);
+//  delay(0);                   // need this 0 delay for the transmission to complete
+//  digitalWrite(xmtEn, LOW);   // disables transmit buffer
+//  delay(5);                  //5ms follows the pot smoothly, 100ms is jumpy, emperical
+//  
+//  // set continous rotation motor 2
+//  digitalWrite(xmtEn, HIGH);  // enable transmit buffer
+//  for(int i = 0; i < 11; i++)
+//    Serial.write(continuous02[i]);
+//  delay(0);                   // need this 0 delay for the transmission to complete
+//  digitalWrite(xmtEn, LOW);   // disables transmit buffer
+//  delay(5);                  //5ms follows the pot smoothly, 100ms is jumpy, emperical
   
   
   Wire.begin(STAB_PLATFORM_ADDRESS);  // join i2c bus with address 0x7

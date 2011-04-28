@@ -57,7 +57,7 @@ namespace CameraTrendnetAForge
 
         // statistics array
         private int[] statCount = new int[statLength];
-        string cameraURL = "http://172.16.143.104/img/video.mjpeg";
+        string cameraURL = "http://192.168.1.86/img/video.mjpeg";
         //string cameraURL = "http://192.168.2.175/img/video.mjpeg";
         
         public FormPilot()
@@ -169,10 +169,20 @@ namespace CameraTrendnetAForge
 
             // draw cross-hairs
             Pen pR = new Pen(Color.Red);
+
+            if (!armed)
+            {
+                Font armFont = new Font("arial",16.0f);
+                Color clr = Color.Red;
+                SolidBrush br = new SolidBrush(clr);
+                
+
+                g.DrawString("NOT ARMED", armFont, br, 10.0f/4, 240.0f/4);
+            }
             
             //g.DrawLine(pR, 137.0f, 120.0f, 173.0f, 120.0f);
             //g.DrawLine(pR, 150.0f, 107.0f, 150.0f, 133.0f);
-            g.DrawRectangle(pR, 366.0f, 257.0f, 20.0f, 20.0f);
+            g.DrawRectangle(pR, 366.0f/4, 257.0f/4 , 20.0f/2, 20.0f/2);
 
             
             pR.Dispose();
@@ -657,25 +667,25 @@ namespace CameraTrendnetAForge
             grfx.DrawLine(redPen,xp1,yp1,xp2,yp2);
 
             // draw last target hit
-            if (labelTargetPlate.Text == "1")
+            if (labelTargetPlate.Text == "3")
             {
-                // back right
-                grfx.DrawLine(redPen, 260, 300, 300, 260);
-            }
-            else if (labelTargetPlate.Text == "2")
-            {
-                // top right
-                grfx.DrawLine(redPen, 260, 0, 300, 40);
-            }
-            else if (labelTargetPlate.Text == "3")
-            {
-                // top left
-                grfx.DrawLine(redPen, 40, 0, 0, 40);
+                // front
+                grfx.DrawLine(redPen, 0, 2, 300, 2);
             }
             else if (labelTargetPlate.Text == "4")
             {
-                // bottom left
-                grfx.DrawLine(redPen, 40, 300, 0, 260);
+                // right
+                grfx.DrawLine(redPen, 298, 0, 298, 300);
+            }
+            else if (labelTargetPlate.Text == "2")
+            {
+                // left
+                grfx.DrawLine(redPen, 2, 0, 2, 300);
+            }
+            else if (labelTargetPlate.Text == "1")
+            {
+                // back
+                grfx.DrawLine(redPen, 0, 298, 300, 298);
             }
 
 
@@ -704,7 +714,7 @@ namespace CameraTrendnetAForge
                 //if (strHitpoints != null)
                 //{
                 //    hitPoints = int.Parse(strHitpoints);
-                //    labelHitPoints.Text = hitPoints.ToString();
+                //    labelHitPoints.Text = hitPoints.ToString();     
                 //}
 
                 //if (strHitPanel != null)

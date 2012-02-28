@@ -1,0 +1,9 @@
+C:\code\MechCommanderDebug\MechCommanderDebug\bin\Debug\MechCommanderDebug.exe
+C:\code\MechCommanderDebug\MechCommanderDebug\bin\Debug\MechCommanderDebug.pdb
+C:\code\MechCommanderDebug\MechCommanderDebug\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\code\MechCommanderDebug\MechCommanderDebug\obj\x86\Debug\WindowsFormsApplication1.Form1.resources
+C:\code\MechCommanderDebug\MechCommanderDebug\obj\x86\Debug\WindowsFormsApplication1.Properties.Resources.resources
+C:\code\MechCommanderDebug\MechCommanderDebug\obj\x86\Debug\GenerateResource.read.1.tlog
+C:\code\MechCommanderDebug\MechCommanderDebug\obj\x86\Debug\GenerateResource.write.1.tlog
+C:\code\MechCommanderDebug\MechCommanderDebug\obj\x86\Debug\MechCommanderDebug.exe
+C:\code\MechCommanderDebug\MechCommanderDebug\obj\x86\Debug\MechCommanderDebug.pdb

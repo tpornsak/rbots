@@ -134,13 +134,13 @@
             // trackBarElPos
             // 
             this.trackBarElPos.Location = new System.Drawing.Point(871, 74);
-            this.trackBarElPos.Maximum = 870;
-            this.trackBarElPos.Minimum = 480;
+            this.trackBarElPos.Maximum = 620;
+            this.trackBarElPos.Minimum = 570;
             this.trackBarElPos.Name = "trackBarElPos";
             this.trackBarElPos.Size = new System.Drawing.Size(230, 45);
             this.trackBarElPos.TabIndex = 4;
             this.trackBarElPos.TickStyle = System.Windows.Forms.TickStyle.None;
-            this.trackBarElPos.Value = 650;
+            this.trackBarElPos.Value = 600;
             this.trackBarElPos.ValueChanged += new System.EventHandler(this.trackBar1_ValueChanged);
             this.trackBarElPos.KeyDown += new System.Windows.Forms.KeyEventHandler(this.trackBarElPos_KeyDown);
             this.trackBarElPos.MouseMove += new System.Windows.Forms.MouseEventHandler(this.trackBarElPos_MouseMove);
@@ -166,20 +166,19 @@
             // 
             // serialPortMech
             // 
-            this.serialPortMech.BaudRate = 115200;
-            this.serialPortMech.PortName = "COM4";
+            this.serialPortMech.BaudRate = 38400;
+            this.serialPortMech.PortName = "COM11";
             this.serialPortMech.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(this.serialPortMech_DataReceived);
             // 
             // trackBarAzPos
             // 
             this.trackBarAzPos.Location = new System.Drawing.Point(871, 157);
             this.trackBarAzPos.Maximum = 818;
-            this.trackBarAzPos.Minimum = 204;
             this.trackBarAzPos.Name = "trackBarAzPos";
             this.trackBarAzPos.Size = new System.Drawing.Size(230, 45);
             this.trackBarAzPos.TabIndex = 7;
             this.trackBarAzPos.TickStyle = System.Windows.Forms.TickStyle.None;
-            this.trackBarAzPos.Value = 512;
+            this.trackBarAzPos.Value = 511;
             this.trackBarAzPos.ValueChanged += new System.EventHandler(this.trackBarAzPos_ValueChanged);
             this.trackBarAzPos.KeyDown += new System.Windows.Forms.KeyEventHandler(this.trackBarAzPos_KeyDown);
             // 

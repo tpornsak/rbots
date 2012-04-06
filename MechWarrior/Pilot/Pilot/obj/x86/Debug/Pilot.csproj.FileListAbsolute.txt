@@ -53,3 +53,10 @@ C:\current\Pilot\obj\x86\Debug\GenerateResource.read.1.tlog
 C:\current\Pilot\obj\x86\Debug\GenerateResource.write.1.tlog
 C:\current\Pilot\obj\x86\Debug\CameraTrendnetAForge.exe
 C:\current\Pilot\obj\x86\Debug\CameraTrendnetAForge.pdb
+C:\code\PilotSVN\Pilot\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\code\PilotSVN\Pilot\obj\x86\Debug\CameraTrendnetAForge.FormPilot.resources
+C:\code\PilotSVN\Pilot\obj\x86\Debug\CameraTrendnetAForge.Properties.Resources.resources
+C:\code\PilotSVN\Pilot\obj\x86\Debug\GenerateResource.read.1.tlog
+C:\code\PilotSVN\Pilot\obj\x86\Debug\GenerateResource.write.1.tlog
+C:\code\PilotSVN\Pilot\obj\x86\Debug\CameraTrendnetAForge.exe
+C:\code\PilotSVN\Pilot\obj\x86\Debug\CameraTrendnetAForge.pdb

@@ -9,9 +9,9 @@ using System.Windows.Forms;
 
 using AForge.Video;
 using AForge.Video.DirectShow;
-using AForge.Imaging;
-using AForge.Imaging.Filters;
-using AForge.Imaging.Textures;
+//using AForge.Imaging;
+//using AForge.Imaging.Filters;
+//using AForge.Imaging.Textures;
 
 
 namespace CameraTrendnetAForge
@@ -20,10 +20,13 @@ namespace CameraTrendnetAForge
     {
 
         // create filter
-        Mirror filterMirror = new Mirror(false,true);
+       // Mirror filterMirror = new Mirror(false,true);
 
         // hitpoints
         private int hitPoints = 20;
+
+        //
+        private bool latchButton = false; // keep track of button latching for commander protocol
 
         private const float deg2rad = (float) (Math.PI / 180.0);
 
@@ -45,7 +48,7 @@ namespace CameraTrendnetAForge
         private byte cmdLeg = 0x00;
 
         // length of command
-        private const int cmdLength = 12;
+        private int cmdLength = 12;
         private int mousePrevX = 0;
         private int mousePrevY = 0;
         private bool mouseMoveInitFlag = false;
@@ -57,8 +60,10 @@ namespace CameraTrendnetAForge
 
         // statistics array
         private int[] statCount = new int[statLength];
-        string cameraURL = "http://192.168.1.86/img/video.mjpeg";
+        //string cameraURL = "http://192.168.1.86/img/video.mjpeg";
         //string cameraURL = "http://192.168.2.175/img/video.mjpeg";
+        //string cameraURL = "http://192.168.0.103:8080/live.flv";
+        string cameraURL = "http://192.168.0.102:8080/videofeed";
         
         public FormPilot()
         {
@@ -164,7 +169,7 @@ namespace CameraTrendnetAForge
         private void mechCamera_NewFrame(object sender, ref Bitmap image)
         {
             DateTime now = DateTime.Now;
-            filterMirror.ApplyInPlace(image);
+           // filterMirror.ApplyInPlace(image);
             Graphics g = Graphics.FromImage(image);
 
             // draw cross-hairs
@@ -226,6 +231,7 @@ namespace CameraTrendnetAForge
 
         private void trackBar1_ValueChanged(object sender, EventArgs e)
         {
+            textBoxElPos.Text = trackBarElPos.Value.ToString();
             updateTurret();
             mechCamera.Focus();
         }
@@ -234,40 +240,44 @@ namespace CameraTrendnetAForge
         {
             try
             {
-                textBoxElPos.Text = trackBarElPos.Value.ToString();
-                textBoxElSpeed.Text = trackBarElSpeed.Value.ToString();
-                textBoxAzPos.Text = trackBarAzPos.Value.ToString();
-                textBoxAzSpeed.Text = trackBarAzSpeed.Value.ToString();
-                //short goalElPos = (short)(1023 * trackBarElPos.Value / 300);
-                //short goalElSpeed = (short)(1023 * trackBarElSpeed.Value / 114);
-                //short goalAzPos = (short)(1023 * trackBarAzPos.Value / 300);
-                //short goalAzSpeed = (short)(1023 * trackBarAzSpeed.Value / 114);
-                short goalElPos = (short) ( trackBarElPos.Maximum - trackBarElPos.Value + trackBarElPos.Minimum ) ;
-                short goalElSpeed = (short)trackBarElSpeed.Value;
-                short goalAzPos = (short)(trackBarAzPos.Maximum - trackBarAzPos.Value + trackBarAzPos.Minimum);
-               // short goalAzPos = (short)(trackBarAzPos.Value);
-                short goalAzSpeed = (short)trackBarAzSpeed.Value;
-                byte goalElPosLow = (byte)(goalElPos & 0xff);
-                byte goalElPosHigh = (byte)(goalElPos >> 8);
-                byte goalAzPosLow = (byte)(goalAzPos & 0xff);
-                byte goalAzPosHigh = (byte)(goalAzPos >> 8);
-                byte goalElSpeedLow = (byte)(goalElSpeed & 0xff);
-                byte goalElSpeedHigh = (byte)(goalElSpeed >> 8);
-                byte goalAzSpeedLow = (byte)(goalAzSpeed & 0xff);
-                byte goalAzSpeedHigh = (byte)(goalAzSpeed >> 8);
+               // textBoxElPos.Text = trackBarElPos.Value.ToString();
+               // textBoxElSpeed.Text = trackBarElSpeed.Value.ToString();
+               //textBoxAzPos.Text = trackBarAzPos.Value.ToString();
+               // textBoxAzSpeed.Text = trackBarAzSpeed.Value.ToString();
+               // //short goalElPos = (short)(1023 * trackBarElPos.Value / 300);
+               // //short goalElSpeed = (short)(1023 * trackBarElSpeed.Value / 114);
+               // //short goalAzPos = (short)(1023 * trackBarAzPos.Value / 300);
+               // //short goalAzSpeed = (short)(1023 * trackBarAzSpeed.Value / 114);
+               short goalElPos = (short) ( trackBarElPos.Maximum - trackBarElPos.Value + trackBarElPos.Minimum ) ;
+               // short goalElSpeed = (short)trackBarElSpeed.Value;
+               short goalAzPos = (short)(trackBarAzPos.Maximum - trackBarAzPos.Value + trackBarAzPos.Minimum);
+               //// short goalAzPos = (short)(trackBarAzPos.Value);
+               // short goalAzSpeed = (short)trackBarAzSpeed.Value;
+               byte goalElPosLow = (byte)(goalElPos & 0xff);
+               byte goalElPosHigh = (byte)(goalElPos >> 8);
+               byte goalAzPosLow = (byte)(goalAzPos & 0xff);
+               byte goalAzPosHigh = (byte)(goalAzPos >> 8);
+               // byte goalElSpeedLow = (byte)(goalElSpeed & 0xff);
+               // byte goalElSpeedHigh = (byte)(goalElSpeed >> 8);
+               // byte goalAzSpeedLow = (byte)(goalAzSpeed & 0xff);
+               // byte goalAzSpeedHigh = (byte)(goalAzSpeed >> 8);
 
-                byte[] cmdBytes = new byte[cmdLength] { 0x2A, cmdLeg, 0x00, goalElPosLow, goalElPosHigh, goalElSpeedLow, goalElSpeedHigh,
-                                             goalAzPosLow, goalAzPosHigh, goalAzSpeedLow, goalAzSpeedHigh,  gunFire};
-                // reset gun to zero
-                gunFire = 0x00;
+               ////byte[] cmdBytes = new byte[cmdLength] { 0x2A, cmdLeg, 0x00, goalElPosLow, goalElPosHigh, goalElSpeedLow, goalElSpeedHigh,
+               // //                             goalAzPosLow, goalAzPosHigh, goalAzSpeedLow, goalAzSpeedHigh,  gunFire};
 
-                // reset legcmd to zero
-                cmdLeg = 0x00;
+               // byte[] cmdBytes = new byte[8] { 0xFF, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+               // cmdBytes[7] = (byte) (0xFF - (byte) (cmdBytes[1] + cmdBytes[2] + cmdBytes[3] + cmdBytes[4] + cmdBytes[5]));
+               // textBoxDebug.AppendText("Commands!!!: " + cmdBytes[7].ToString());
+               // // reset gun to zero
+               // gunFire = 0x00;
 
-                if (serialPortMech.IsOpen)
-                {
-                    serialPortMech.Write(cmdBytes, 0, cmdLength);
-                }
+               // // reset legcmd to zero
+               // cmdLeg = 0x00;
+
+               // if (serialPortMech.IsOpen)
+               // {
+               //     serialPortMech.Write(cmdBytes, 0, cmdLength);
+               // }
 
 
                 // textBoxDebug.AppendText(cmdBytes[0].ToString());
@@ -275,6 +285,83 @@ namespace CameraTrendnetAForge
                 // for(int i=1;i < cmdLength;i++)
                 //     textBoxDebug.AppendText("," + cmdBytes[i].ToString());
                 //  textBoxDebug.AppendText(System.Environment.NewLine);
+
+                byte byteHeader = 0xFF;
+                byte byteLVert = 0x80;
+                byte byteLHorz = 0x80;
+                byte byteRVert = 0x80;
+                byte byteRHorz = 0x80;
+                byte byteButton = 0x00;
+                byte byteExt = 0x00;
+
+                if (latchButton)
+                {
+                    byteButton = 0x80;
+                    latchButton = false;
+                }
+                else
+                {
+                    byteButton = 0x00;
+
+                }
+
+
+                switch (cmdLeg)
+                {
+                    // Forward Case
+                    case 0x05:
+                        byteLVert = 0xFD;  //  253 decimal - see commander Protocol
+                        byteLHorz = 0x80;  //  80 decimal  - neutral position
+                        break;
+                    // Reverse Case
+                    case 0x06:
+                        byteLVert = 0x03;  //  3 decimal   - see commander Protocol
+                        byteLHorz = 0x80;  //  80 decimal  - neutral position
+                        break;
+                    // Turn Right Case
+                    case 0x01:
+                        byteLVert = 0x80;  //  3 decimal   - see commander Protocol
+                        byteLHorz = 0xFD;  //  80 decimal  - neutral position
+                        break;
+                    // Turn Left Case
+                    case 0x03:
+                        byteLVert = 0x80;  //  3 decimal   - see commander Protocol
+                        byteLHorz = 0x03;  //  80 decimal  - neutral position
+                        break;
+                    // Stop Case
+                    case 0x07:
+                        byteLVert = 0x80;  //  3 decimal   - see commander Protocol
+                        byteLHorz = 0x80;  //  80 decimal  - neutral position
+                        break;
+                    // Strafe Left
+                    case 0x04:
+                        byteLVert = 0x80;  //  3 decimal   - see commander Protocol
+                        byteLHorz = 0x03;  //  80 decimal  - neutral position
+                        byteButton = 0x80; // to strafe left top butoon
+                        latchButton = true;
+                        break;
+                    // Strafe right
+                    case 0x02:
+                        byteLVert = 0x80;  //  3 decimal   - see commander Protocol
+                        byteLHorz = 0xFD;  //  80 decimal  - neutral position
+                        byteButton = 0x80; // to strafe left top butoon
+                        latchButton = true;
+                        break;
+
+                }
+                // Calculate the checksum + display it
+                byte byteChecksum = (byte)(0xFF - (byte)(byteRVert + byteRHorz + byteLVert + byteLHorz + byteButton + byteExt) % 256);
+
+                //goalAzPosLow = 0; goalAzPosHigh = 0; goalElPosLow = 0; goalElPosHigh = 0;
+
+                byte[] cmdBytes = new byte[12] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, goalAzPosLow, goalAzPosHigh, goalElPosLow, goalElPosHigh, byteChecksum };
+                //byte[] cmdBytes = new byte[8] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, byteChecksum };
+                //byte[] cmdBytes = new byte[9] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, goalAzPosLow, byteChecksum };
+                cmdLength = 12;
+                if (serialPortMech.IsOpen)
+                {
+                    serialPortMech.Write(cmdBytes, 0, cmdLength);
+                }
 
                 panelGunOrientation.Refresh();
 
@@ -293,6 +380,7 @@ namespace CameraTrendnetAForge
 
         private void trackBarAzPos_ValueChanged(object sender, EventArgs e)
         {
+            textBoxAzPos.Text = trackBarAzPos.Value.ToString();
             updateTurret();
             mechCamera.Focus();
         }
@@ -425,6 +513,10 @@ namespace CameraTrendnetAForge
             else if (e.KeyData == Keys.Q)
             {
                 cmdLeg = 0x04;
+            }
+            else if (e.KeyData == Keys.X)
+            {
+                 cmdLeg = 0x07;
             }
              // If ready to arm check box is checked and key P was pressed,
              // then arm the MechWarrior

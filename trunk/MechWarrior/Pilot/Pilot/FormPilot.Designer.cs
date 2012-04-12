@@ -66,6 +66,12 @@
             this.label3 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
+            this.label6 = new System.Windows.Forms.Label();
+            this.labelBearingInt = new System.Windows.Forms.Label();
+            this.label7 = new System.Windows.Forms.Label();
+            this.labelLeftIR = new System.Windows.Forms.Label();
+            this.label8 = new System.Windows.Forms.Label();
+            this.labelRightIR = new System.Windows.Forms.Label();
             this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarElPos)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarAzPos)).BeginInit();
@@ -167,7 +173,7 @@
             // serialPortMech
             // 
             this.serialPortMech.BaudRate = 38400;
-            this.serialPortMech.PortName = "COM11";
+            this.serialPortMech.PortName = "COM4";
             this.serialPortMech.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(this.serialPortMech_DataReceived);
             // 
             // trackBarAzPos
@@ -443,11 +449,77 @@
             this.label5.TabIndex = 32;
             this.label5.Text = "Match Timer";
             // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(681, 174);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(43, 13);
+            this.label6.TabIndex = 34;
+            this.label6.Text = "Bearing";
+            // 
+            // labelBearingInt
+            // 
+            this.labelBearingInt.AutoSize = true;
+            this.labelBearingInt.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelBearingInt.ForeColor = System.Drawing.Color.Blue;
+            this.labelBearingInt.Location = new System.Drawing.Point(677, 187);
+            this.labelBearingInt.Name = "labelBearingInt";
+            this.labelBearingInt.Size = new System.Drawing.Size(36, 37);
+            this.labelBearingInt.TabIndex = 33;
+            this.labelBearingInt.Text = "0";
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.Location = new System.Drawing.Point(1041, 247);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(39, 13);
+            this.label7.TabIndex = 36;
+            this.label7.Text = "Left IR";
+            // 
+            // labelLeftIR
+            // 
+            this.labelLeftIR.AutoSize = true;
+            this.labelLeftIR.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelLeftIR.ForeColor = System.Drawing.Color.Blue;
+            this.labelLeftIR.Location = new System.Drawing.Point(1037, 260);
+            this.labelLeftIR.Name = "labelLeftIR";
+            this.labelLeftIR.Size = new System.Drawing.Size(36, 37);
+            this.labelLeftIR.TabIndex = 35;
+            this.labelLeftIR.Text = "0";
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(1174, 247);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(46, 13);
+            this.label8.TabIndex = 38;
+            this.label8.Text = "Right IR";
+            // 
+            // labelRightIR
+            // 
+            this.labelRightIR.AutoSize = true;
+            this.labelRightIR.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelRightIR.ForeColor = System.Drawing.Color.Blue;
+            this.labelRightIR.Location = new System.Drawing.Point(1170, 260);
+            this.labelRightIR.Name = "labelRightIR";
+            this.labelRightIR.Size = new System.Drawing.Size(36, 37);
+            this.labelRightIR.TabIndex = 37;
+            this.labelRightIR.Text = "0";
+            // 
             // FormPilot
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1284, 662);
+            this.Controls.Add(this.label8);
+            this.Controls.Add(this.labelRightIR);
+            this.Controls.Add(this.label7);
+            this.Controls.Add(this.labelLeftIR);
+            this.Controls.Add(this.label6);
+            this.Controls.Add(this.labelBearingInt);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.label3);
@@ -538,6 +610,12 @@
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.Label labelBearingInt;
+        private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.Label labelLeftIR;
+        private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.Label labelRightIR;
     }
 }
 

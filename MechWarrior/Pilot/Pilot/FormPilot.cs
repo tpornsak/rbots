@@ -44,6 +44,9 @@ namespace CameraTrendnetAForge
         // fire gun variable, 0: No fire, 1: Fire
         private byte gunFire = 0x00;
 
+        private byte [] inByte = {0x00};
+        private byte [] readBytes;
+
         // stop iscmdLeg = 0x01, forwad is cmdLeg = 0x02, 
         private byte cmdLeg = 0x00;
 
@@ -63,7 +66,7 @@ namespace CameraTrendnetAForge
         //string cameraURL = "http://192.168.1.86/img/video.mjpeg";
         //string cameraURL = "http://192.168.2.175/img/video.mjpeg";
         //string cameraURL = "http://192.168.0.103:8080/live.flv";
-        string cameraURL = "http://192.168.0.102:8080/videofeed";
+        string cameraURL = "http://192.168.0.103:8080/videofeed";
         
         public FormPilot()
         {
@@ -354,15 +357,15 @@ namespace CameraTrendnetAForge
 
                 //goalAzPosLow = 0; goalAzPosHigh = 0; goalElPosLow = 0; goalElPosHigh = 0;
 
-                byte[] cmdBytes = new byte[12] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, goalAzPosLow, goalAzPosHigh, goalElPosLow, goalElPosHigh, byteChecksum };
+                byte[] cmdBytes = new byte[13] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, goalAzPosLow, goalAzPosHigh, goalElPosLow, goalElPosHigh, gunFire, byteChecksum };
                 //byte[] cmdBytes = new byte[8] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, byteChecksum };
                 //byte[] cmdBytes = new byte[9] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, goalAzPosLow, byteChecksum };
-                cmdLength = 12;
+                cmdLength = 13;
                 if (serialPortMech.IsOpen)
                 {
                     serialPortMech.Write(cmdBytes, 0, cmdLength);
                 }
-
+                gunFire = 0x00;
                 panelGunOrientation.Refresh();
 
             }
@@ -791,15 +794,53 @@ namespace CameraTrendnetAForge
             // read from bot
             try
             {
-                if (serialPortMech.BytesToRead > 1)
+                if (serialPortMech.BytesToRead > 11) // if new data is available
                 {
-                    byte[] recBytes = new byte[2];
-                    serialPortMech.Read(recBytes, 0, 2);
+                    byte[] recBytes = new byte[12];
+                    serialPortMech.Read(recBytes, 0, 12);
+                    //for (int k = 0; k < 12; k++)
+                    //{
+                    //    textBoxDebug.AppendText(recBytes[k].ToString());
+                    //}
+                    if (recBytes[0] == '*' && recBytes[1] == '*')
+                    {
+                        labelHitPoints.Text = recBytes[2].ToString();
+                        labelTargetPlate.Text = recBytes[3].ToString();
+                        byte hbyte,lbyte;
+                        hbyte = recBytes[4];
+                        lbyte = recBytes[5];
+                           
+                        int bearingInt = ((hbyte<<8)+lbyte)/10;               // Calculate full bearing
+                        int bearingDec = ((hbyte << 8) + lbyte) % 10;         // Calculate decimal place of bearing
+                        float bearing = bearingInt + bearingDec;
 
-                    labelHitPoints.Text = recBytes[0].ToString();
-                    labelTargetPlate.Text = recBytes[1].ToString();
+                        byte[] bytesLeftIR = new byte[2];
+                        bytesLeftIR[0] = recBytes[8];   // low byte of left analog Sharp IR sensor reading
+                        bytesLeftIR[1] = recBytes[9];    // high byte of left analog Sharp IR sensor reading
+
+                        byte[] bytesRightIR = new byte[2];
+                        bytesRightIR[0] = recBytes[10];  // low byte of right analog Sharp IR sensor reading
+                        bytesRightIR[1] = recBytes[11];  // high byte of right analog Sharp IR sensor reading
+
+                        short leftIRInt = BitConverter.ToInt16(bytesLeftIR,0);  // convert from 2 bytes to int
+                        short rightIRInt = BitConverter.ToInt16(bytesRightIR, 0); // convert from 2 bytes to int
+                        double VOLTS_PER_UNIT = 0.0049;
+
+                        double voltsLeft  = (double)leftIRInt * VOLTS_PER_UNIT;
+                        double voltsRight = (double)rightIRInt * VOLTS_PER_UNIT;
+
+                        double cmLeft = 60.495 * Math.Pow(voltsLeft, -1.1904);
+                        double cmRight = 60.495 * Math.Pow(voltsRight, -1.1904);
+
+                        labelBearingInt.Text = bearing.ToString();
+                        labelLeftIR.Text = cmLeft.ToString();
+                        labelRightIR.Text = cmRight.ToString();
+                        
+                    }
                     serialPortMech.DiscardInBuffer();
+                    
                 }
+                
                 //string strTargetBoards = serialPortMech.ReadLine();
                // string strHitPanel = serialPortMech.ReadLine();
 

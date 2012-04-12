@@ -60,3 +60,13 @@ C:\code\PilotSVN\Pilot\obj\x86\Debug\GenerateResource.read.1.tlog
 C:\code\PilotSVN\Pilot\obj\x86\Debug\GenerateResource.write.1.tlog
 C:\code\PilotSVN\Pilot\obj\x86\Debug\CameraTrendnetAForge.exe
 C:\code\PilotSVN\Pilot\obj\x86\Debug\CameraTrendnetAForge.pdb
+C:\code\PilotSVN\Pilot\bin\Debug\CameraTrendnetAForge.exe
+C:\code\PilotSVN\Pilot\bin\Debug\CameraTrendnetAForge.pdb
+C:\code\PilotSVN\Pilot\bin\Debug\AForge.Controls.dll
+C:\code\PilotSVN\Pilot\bin\Debug\AForge.dll
+C:\code\PilotSVN\Pilot\bin\Debug\AForge.Video.DirectShow.dll
+C:\code\PilotSVN\Pilot\bin\Debug\AForge.Video.dll
+C:\code\PilotSVN\Pilot\bin\Debug\AForge.xml
+C:\code\PilotSVN\Pilot\bin\Debug\AForge.Controls.xml
+C:\code\PilotSVN\Pilot\bin\Debug\AForge.Video.xml
+C:\code\PilotSVN\Pilot\bin\Debug\AForge.Video.DirectShow.xml

@@ -18,12 +18,40 @@ namespace CameraTrendnetAForge
 {
     public partial class FormPilot : Form
     {
+        // This delegate enables asynchronous calls for setting
+        // the text property on a TextBox control.
+        delegate void SetTextCallback(string text);
+
+        // buffers to stor IR 'radar' data, save full sweep before overwriting
+        const int bufferSize = 40;
+        int idxBufferRight = 0;
+        double [] bufferRightIR    = new double[bufferSize];
+        int [] bufferRightIRPos    = new int[bufferSize];
+
+
+        // variables to store for label for serial rx, needed
+        // since we cannot edit labels inside rx interrupt
+        double cmLeftIR  = 0.0;
+        double cmRightIR = 0.0;
+        double cmFrontIR = 0.0;
+        double cmBackIR  = 0.0;
+
+        double cmServoLeftIR  = 0.0;
+        double cmServiRightIR = 0.0;
+
+        byte servoPosRight = 0;
+
+        double bearing   = 0.0;
+
 
         // create filter
        // Mirror filterMirror = new Mirror(false,true);
 
         // hitpoints
-        private int hitPoints = 20;
+        byte hitPoints = 20;
+
+        // Target plate that was hit
+        byte targetPlate = 0;
 
         //
         private bool latchButton = false; // keep track of button latching for commander protocol
@@ -76,6 +104,12 @@ namespace CameraTrendnetAForge
             InitializeSerialPort();
             scaleMouseHeight = (double)(trackBarElPos.Maximum - trackBarElPos.Minimum) / mechCamera.Height;
             scaleMouseWidth = (double)(trackBarAzPos.Maximum - trackBarAzPos.Minimum) / mechCamera.Width;
+
+            for (int i = 0; i < bufferRightIR.Length; i++)
+            {
+                bufferRightIR[i] = 1000.0;
+                bufferRightIRPos[i] = 70;
+            }
         }
 
         private void InitializeSerialPort()
@@ -196,6 +230,7 @@ namespace CameraTrendnetAForge
             pR.Dispose();
 
             g.Dispose();
+            updateData();
         }
 
         private void timer_Tick(object sender, EventArgs e)
@@ -230,6 +265,7 @@ namespace CameraTrendnetAForge
             }
 
             textBoxFocus.AppendText(this.ActiveControl.ToString() + Environment.NewLine);
+            updateData();
         }
 
         private void trackBar1_ValueChanged(object sender, EventArgs e)
@@ -737,50 +773,180 @@ namespace CameraTrendnetAForge
 
         private void panelGunOrientation_Paint(object sender, PaintEventArgs e)
         {
+            float cm2pixel = 450 / 311;
+            float mechWidth = 53.4f;    // 36.83 cm
+            float mechHalfWidth = 26.7f;
+            const int center = 225;   // middle of panel
+            const int offsetIRX = 16;   // offset from center of mech body to IR in pixels, 11 cm
+            const int offsetIRY = 7;    // offset from center of mech body to IR in pixels, 11 cm
+            const int boxIRwidth = 4;
+            const float offsetAZ = 90.0f;  //   AX-12 offset in degrees, ie. if AZ motor is at 90 deg, than it is forward facing to mech body
+            const int offsetBearing = 182;  // offset in degrees from North to Local arean reference
+            const float offsetRservo = 90.0f;
+
             // draw gun orientation to panel
             Graphics grfx = panelGunOrientation.CreateGraphics();
+            Pen greenPen = new Pen(Color.Green);
+            Pen bluePen = new Pen(Color.Blue);
             Pen redPen = new Pen(Color.Red);
+            
             redPen.Width = 5;
+            bluePen.Width = 5;
+            greenPen.Width = 5;
             Pen blackPen = new Pen(Color.Black);
-            const int xp2 = 95;
-            const int yp2 = 170;
-            const float lineLength = 90.0f;
+            int xp2 = center;
+            int yp2 = center - (int)mechHalfWidth;
+            const float lineLength = 90.0f;  // lenth in pixels of how long gun viz is
+            float bearingLineLength = mechHalfWidth;
             
             const float bit2deg = 1024.0f / 300.0f;
             float theta = trackBarAzPos.Value / bit2deg;  // azimuth angle in degrees
-            float phi = theta - 150;
+            //float phi = theta - 150;
+            float phi = theta - offsetAZ;
             // convert to radians
             phi *= deg2rad;
-            float x1 = lineLength * (float)Math.Sin(phi);
+            float x1 = lineLength * (float) Math.Sin(phi);
             float y1 = lineLength * (float) Math.Cos(phi);
             float xp1 = x1 + xp2;
             float yp1 = yp2 - y1;
 
-            grfx.DrawRectangle(blackPen, 50, 150, 100, 40);
+            // draw mech body as rectangle
+            grfx.DrawRectangle(blackPen, center - (int)mechHalfWidth, center - (int)mechHalfWidth, (int)mechWidth,(int) mechWidth);
 
             // draw gun barrel, update based on orientation
             grfx.DrawLine(redPen,xp1,yp1,xp2,yp2);
 
-            // draw last target hit
+            // draw bearing - consider moving to draw on video also
+            float phiBearing = (float) bearing - offsetBearing;
+            phiBearing *= deg2rad;   //convert to radians
+            x1 = bearingLineLength * (float) Math.Sin(phiBearing);
+            y1 = bearingLineLength * (float) Math.Cos(phiBearing);
+            xp1 = x1 + center;
+            yp1 = center - y1;
+            grfx.DrawLine(bluePen, xp1, yp1, center, center);
+
+            for (int i = 0; i < bufferRightIR.Length; i++)
+            {
+                // draw right sweeping sensor
+                float cmServiRightIRTemp = (float)bufferRightIR[i];
+                int servoPosRightTemp = bufferRightIRPos[i];
+                if (cmServiRightIRTemp < 150.0 && cmServiRightIRTemp > 0.0 && servoPosRightTemp < 170)
+                {
+
+                    float servoRphi = (float)servoPosRightTemp - offsetRservo;
+                    servoRphi *= deg2rad;  //convert to rad
+                    x1 = (float)cmServiRightIRTemp * cm2pixel * (float)Math.Sin(servoRphi);
+                    y1 = (float)cmServiRightIRTemp * cm2pixel * (float)Math.Cos(servoRphi);
+                    float x2 = x1 * (float)Math.Cos(-phi) - y1 * (float)Math.Sin(-phi);
+                    float y2 = x1 * (float)Math.Sin(-phi) + y1 * (float)Math.Cos(-phi);
+
+                    xp1 = x2 + center + 6;
+                    yp1 = center - y2 - 5 * cm2pixel;
+                    blackPen.Width = 5;
+
+                    // save coordinates into buffer
+                    grfx.DrawEllipse(blackPen, xp1, yp1, 2.0f, 2.0f);
+
+
+                }
+            }
+
+
+            
+
+
+            // draw right IR sesnor reading, red, blue, green based on distance
+            if(cmRightIR < 30.0  && cmRightIR > 0.0) {
+                grfx.DrawRectangle(redPen, center + offsetIRX + (int)(cmRightIR * cm2pixel), center - offsetIRY, boxIRwidth, boxIRwidth);
+            }
+            else if (cmRightIR < 48.0 && cmRightIR > 30.0)
+            {
+                grfx.DrawRectangle(bluePen, center + offsetIRX + (int)(cmRightIR * cm2pixel), center - offsetIRY, boxIRwidth, boxIRwidth);
+            }
+            else if (cmRightIR < 150 && cmRightIR > 48.0)
+            {
+                grfx.DrawRectangle(greenPen, center + offsetIRX + (int)(cmRightIR * cm2pixel), center - offsetIRY, boxIRwidth, boxIRwidth);
+            }
+
+            // draw left IR sesnor reading, red, blue, green based on distance
+            if (cmLeftIR < 30.0 && cmLeftIR > 0.0)
+            {
+                grfx.DrawRectangle(redPen, center - offsetIRX - (int)(cmLeftIR * cm2pixel), center - offsetIRY, boxIRwidth, boxIRwidth);
+            }
+            else if (cmLeftIR < 48.0 && cmLeftIR > 30.0)
+            {
+                grfx.DrawRectangle(bluePen, center - offsetIRX - (int)(cmLeftIR * cm2pixel), center - offsetIRY, boxIRwidth, boxIRwidth);
+            }
+            else if (cmLeftIR < 150.0 && cmLeftIR > 48.0)
+            {
+                grfx.DrawRectangle(greenPen, center - offsetIRX - (int)(cmLeftIR * cm2pixel), center - offsetIRY, boxIRwidth, boxIRwidth);
+            }
+
+            // draw front IR sesnor reading, red, blue, green based on distance
+            if (cmFrontIR < 30.0 && cmFrontIR > 0.0)
+            {
+                grfx.DrawRectangle(redPen, center + offsetIRY, center - offsetIRX - (int)(cmFrontIR * cm2pixel), boxIRwidth, boxIRwidth);
+            }
+            else if (cmFrontIR < 48.0 && cmFrontIR > 30.0)
+            {
+                grfx.DrawRectangle(bluePen, center + offsetIRY, center - offsetIRX - (int)(cmFrontIR * cm2pixel), boxIRwidth, boxIRwidth);
+            }
+            else if (cmFrontIR < 150.0 && cmFrontIR > 48.0)
+            {
+                grfx.DrawRectangle(greenPen, center + offsetIRY, center - offsetIRX - (int)(cmFrontIR * cm2pixel), boxIRwidth, boxIRwidth);
+            }
+
+            // draw back IR sesnor reading, red, blue, green based on distance
+            if (cmBackIR < 30.0 && cmBackIR > 0.0)
+            {
+                grfx.DrawRectangle(redPen, center + offsetIRY, center + offsetIRX + (int)(cmBackIR * cm2pixel), boxIRwidth, boxIRwidth);
+            }
+            else if (cmBackIR < 48.0 && cmBackIR > 30.0)
+            {
+                grfx.DrawRectangle(bluePen, center + offsetIRY, center + offsetIRX + (int)(cmBackIR * cm2pixel), boxIRwidth, boxIRwidth);
+            }
+            else if (cmBackIR < 150.0 && cmBackIR > 48.0)
+            {
+                grfx.DrawRectangle(greenPen, center + offsetIRY, center + offsetIRX + (int)(cmBackIR * cm2pixel), boxIRwidth, boxIRwidth);
+            }
+
+            // draw Servo Right IR sesnor reading, red, blue, green based on distance
+            //if (cmServiRightIR < 30.0 && cmServiRightIR > 0.0)
+            //{
+            //    grfx.DrawRectangle(redPen, center + offsetIRY, center + offsetIRX + (int)(cmServiRightIR * cm2pixel), boxIRwidth, boxIRwidth);
+            //}l
+            //else if (cmServiRightIR < 48.0 && cmServiRightIR > 30.0)
+            //{
+            //    grfx.DrawRectangle(yellowPen, center + offsetIRY, center + offsetIRX + (int)(cmServiRightIR * cm2pixel), boxIRwidth, boxIRwidth);
+            //}
+            //else if (cmServiRightIR < 150.0 && cmServiRightIR > 48.0)
+            //{
+            //    grfx.DrawRectangle(greenPen, center + offsetIRY, center + offsetIRX + (int)(cmServiRightIR * cm2pixel), boxIRwidth, boxIRwidth);
+            //}
+            
+
+            
+
+            //   draw last target hit
             if (labelTargetPlate.Text == "3")
             {
                 // front
-                grfx.DrawLine(redPen, 0, 2, 300, 2);
+                grfx.DrawLine(redPen, 0, 2, 450, 2);
             }
             else if (labelTargetPlate.Text == "4")
             {
                 // right
-                grfx.DrawLine(redPen, 298, 0, 298, 300);
+                grfx.DrawLine(redPen, 448, 0, 448, 450);
             }
             else if (labelTargetPlate.Text == "2")
             {
                 // left
-                grfx.DrawLine(redPen, 2, 0, 2, 300);
+                grfx.DrawLine(redPen, 2, 0, 2, 450);
             }
             else if (labelTargetPlate.Text == "1")
             {
                 // back
-                grfx.DrawLine(redPen, 0, 298, 300, 298);
+                grfx.DrawLine(redPen, 0, 448, 450, 448);
             }
 
 
@@ -788,31 +954,200 @@ namespace CameraTrendnetAForge
             grfx.Dispose();
             
         }
+        private void SetLabel(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.labelHitPoints.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetLabel);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.labelHitPoints.Text = text;
+            }
+        }
 
+        private void SetLabelBearing(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.labelBearingInt.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetLabelBearing);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.labelBearingInt.Text = text;
+            }
+        }
+
+        private void SetLabelLeftIR(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.labelLeftIR.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetLabelLeftIR);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.labelLeftIR.Text = text;
+            }
+        }
+
+        private void SetLabelRightIR(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.labelRightIR.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetLabelRightIR);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.labelRightIR.Text = text;
+            }
+        }
+
+        private void SetLabelFrontIR(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.labelFrontIR.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetLabelFrontIR);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.labelFrontIR.Text = text;
+            }
+        }
+
+        private void SetLabelBackIR(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.labelBackIR.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetLabelBackIR);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.labelBackIR.Text = text;
+            }
+        }
+
+        private void SetLabelServoRIR(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.labelServoR.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetLabelServoRIR);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.labelServoR.Text = text;
+            }
+        }
+
+        private void SetLabelServoRPosIR(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.labelServoRPos.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetLabelServoRPosIR);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.labelServoRPos.Text = text;
+            }
+        }
+
+        private void SetLabelTargetPlate(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.labelTargetPlate.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetLabelTargetPlate);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.labelTargetPlate.Text = text;
+            }
+        }
+
+
+        private void updateData()
+        {
+            //labelBearingInt.Text    = String.Format("{0:f0}", bearing);
+            //labelLeftIR.Text        = String.Format("{0:f0}", cmLeftIR);
+            //labelRightIR.Text       = String.Format("{0:f0}", cmRightIR);
+            //labelFrontIR.Text       = String.Format("{0:f0}", cmFrontIR); 
+            //labelBackIR.Text        = String.Format("{0:f0}", cmBackIR);
+            //labelServoR.Text        = String.Format("{0:f0}", cmServiRightIR);
+            //labelServoRPos.Text     = servoPosRight.ToString();
+            //labelHitPoints.Text     = hitPoints.ToString();
+            //labelTargetPlate.Text   = targetPlate.ToString();
+           
+            SetLabel(hitPoints.ToString());
+            SetLabelBearing(String.Format("{0:f0}", bearing));
+            SetLabelLeftIR(String.Format("{0:f0}", cmLeftIR));
+            SetLabelRightIR(String.Format("{0:f0}", cmRightIR));
+            SetLabelFrontIR(String.Format("{0:f0}", cmFrontIR));
+            SetLabelBackIR(String.Format("{0:f0}", cmBackIR));
+            SetLabelServoRIR(String.Format("{0:f0}", cmServiRightIR));
+            SetLabelServoRPosIR(servoPosRight.ToString());
+            SetLabelTargetPlate(targetPlate.ToString());
+
+            
+        }
         private void serialPortMech_DataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
         {
             // read from bot
             try
             {
-                if (serialPortMech.BytesToRead > 11) // if new data is available
+                if (serialPortMech.BytesToRead > 18) // if new data is available
                 {
-                    byte[] recBytes = new byte[12];
-                    serialPortMech.Read(recBytes, 0, 12);
+                    byte[] recBytes = new byte[19];
+                    serialPortMech.Read(recBytes, 0, 19);
                     //for (int k = 0; k < 12; k++)
                     //{
                     //    textBoxDebug.AppendText(recBytes[k].ToString());
                     //}
                     if (recBytes[0] == '*' && recBytes[1] == '*')
                     {
-                        labelHitPoints.Text = recBytes[2].ToString();
-                        labelTargetPlate.Text = recBytes[3].ToString();
+                        hitPoints   = recBytes[2];
+                        targetPlate = recBytes[3];
+
                         byte hbyte,lbyte;
                         hbyte = recBytes[4];
                         lbyte = recBytes[5];
                            
                         int bearingInt = ((hbyte<<8)+lbyte)/10;               // Calculate full bearing
                         int bearingDec = ((hbyte << 8) + lbyte) % 10;         // Calculate decimal place of bearing
-                        float bearing = bearingInt + bearingDec;
+                        bearing = bearingInt + bearingDec;
 
                         byte[] bytesLeftIR = new byte[2];
                         bytesLeftIR[0] = recBytes[8];   // low byte of left analog Sharp IR sensor reading
@@ -822,19 +1157,52 @@ namespace CameraTrendnetAForge
                         bytesRightIR[0] = recBytes[10];  // low byte of right analog Sharp IR sensor reading
                         bytesRightIR[1] = recBytes[11];  // high byte of right analog Sharp IR sensor reading
 
-                        short leftIRInt = BitConverter.ToInt16(bytesLeftIR,0);  // convert from 2 bytes to int
+                        byte[] bytesFrontIR = new byte[2];
+                        bytesFrontIR[0] = recBytes[12];   // low byte of front analog Sharp IR sensor reading
+                        bytesFrontIR[1] = recBytes[13];    // high byte of front analog Sharp IR sensor reading
+
+                        byte[] bytesBackIR = new byte[2];
+                        bytesBackIR[0] = recBytes[14];   // low byte of front analog Sharp IR sensor reading
+                        bytesBackIR[1] = recBytes[15];    // high byte of front analog Sharp IR sensor reading
+
+                        byte[] bytesServoRightIR = new byte[2];
+                        bytesServoRightIR[0] = recBytes[16];   // low byte of front analog Sharp IR sensor reading
+                        bytesServoRightIR[1] = recBytes[17];    // high byte of front analog Sharp IR sensor reading
+
+                        servoPosRight = recBytes[18]; 
+
+
+                        short leftIRInt  = BitConverter.ToInt16(bytesLeftIR,0);  // convert from 2 bytes to int
                         short rightIRInt = BitConverter.ToInt16(bytesRightIR, 0); // convert from 2 bytes to int
+                        short frontIRInt = BitConverter.ToInt16(bytesFrontIR, 0); // convert from 2 bytes to int
+                        short backIRInt  = BitConverter.ToInt16(bytesBackIR, 0); // convert from 2 bytes to int
+
+                        short servoRightIRInt = BitConverter.ToInt16(bytesServoRightIR, 0); // convert from 2 bytes to int
+
                         double VOLTS_PER_UNIT = 0.0049;
 
-                        double voltsLeft  = (double)leftIRInt * VOLTS_PER_UNIT;
+                        double voltsLeft  = (double)leftIRInt  * VOLTS_PER_UNIT;
                         double voltsRight = (double)rightIRInt * VOLTS_PER_UNIT;
+                        double voltsFront = (double)frontIRInt * VOLTS_PER_UNIT;
+                        double voltsBack  = (double)backIRInt  * VOLTS_PER_UNIT;
 
-                        double cmLeft = 60.495 * Math.Pow(voltsLeft, -1.1904);
-                        double cmRight = 60.495 * Math.Pow(voltsRight, -1.1904);
+                        double voltsServoRight = (double)servoRightIRInt * VOLTS_PER_UNIT;
 
-                        labelBearingInt.Text = bearing.ToString();
-                        labelLeftIR.Text = cmLeft.ToString();
-                        labelRightIR.Text = cmRight.ToString();
+                        cmLeftIR  = 60.495 * Math.Pow(voltsLeft, -1.1904);
+                        cmRightIR = 60.495 * Math.Pow(voltsRight, -1.1904);
+                        cmFrontIR = 60.495 * Math.Pow(voltsFront, -1.1904);
+                        cmBackIR  = 60.495 * Math.Pow(voltsBack, -1.1904);
+
+                        cmServiRightIR = 60.495 * Math.Pow(voltsServoRight, -1.1904);
+
+
+                        bufferRightIR[idxBufferRight] = cmServiRightIR;
+                        bufferRightIRPos[idxBufferRight] = (int)servoPosRight;
+                        idxBufferRight++;
+                        if(idxBufferRight >= bufferSize)
+                        {
+                            idxBufferRight = 0;
+                        }
                         
                     }
                     serialPortMech.DiscardInBuffer();
@@ -860,6 +1228,9 @@ namespace CameraTrendnetAForge
             {
                 textBoxDebug.AppendText(ex.Message.ToString() + Environment.NewLine);
             }
+
+            updateData();
+            panelGunOrientation.Invalidate();
            
         }
     }

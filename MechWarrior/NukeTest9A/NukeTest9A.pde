@@ -7,14 +7,32 @@
 #include <BioloidController.h>
 #include <Commander.h>
 #include "nuke.h"
+#include <Wire.h>
+#include "TimerThree.h"
+#include <Servo.h> 
+
+#define ADDRESS 0x60      // Defines address of CMPS10
 
 Commander command = Commander();
 
 byte hitPoint = 0x05;
 byte tgtPlate = 0x03;
+int gunPin = 40;
+
+Servo ServoRIR;
+int   servoRPos = 70;
+int   servoRPin = 7;
     
 void setup(){
+    Wire.begin();
     pinMode(0,OUTPUT);
+    pinMode(gunPin,OUTPUT);
+    pinMode(13,OUTPUT);
+    digitalWrite(13,LOW);
+    digitalWrite(gunPin,LOW);
+    Timer3.initialize(500000);  // 1/2 second period
+    Timer3.attachInterrupt(callback); 
+    Timer3.stop();
     // setup IK
     setupIK();
     gaitSelect(RIPPLE);
@@ -27,8 +45,8 @@ void setup(){
     //Serial.print ("System Voltage: ");
     //Serial.print (voltage);
     //Serial.println (" volts.");
-    if (voltage < 10.0)
-        while(1);
+    //if (voltage < 10.0)
+    //    while(1);
 
     // stand up slowly
     bioloid.poseSize = 12;
@@ -43,8 +61,10 @@ void setup(){
     ax12SetRegister(14, 24, 1);  // rbots enable torque on el motor
     ax12SetRegister2(13, 30, command.goalAzPos);  // rbots az pos, should have default value at beginning of 511
     ax12SetRegister2(14, 30, command.goalElPos);  // rbots el pos, should have default value at beginning of 600
+    ax12SetRegister2(13, 32, 150);  // set az speed
+    ax12SetRegister2(14, 32, 150);  // set el speed
     
-
+    ServoRIR.attach(servoRPin);  // attaches the servo to pin
     
     
 }
@@ -58,12 +78,21 @@ void loop(){
   // update joints
   bioloid.interpolateStep();
   // take commands
+  if(command.gunFire == 1 && !digitalRead(13))
+  {
+      digitalWrite(gunPin,HIGH);
+      digitalWrite(13,HIGH);
+      command.gunFire = 0;
+      Timer3.start();
+  }
+    
   if(command.ReadMsgs() > 0){
     
     // move azimuth turret
     
     ax12SetRegister2(13, 30, command.goalAzPos);  // rbots az pos
     ax12SetRegister2(14, 30, command.goalElPos);  // rbots el pos
+    
     
     digitalWrite(0,HIGH-digitalRead(0));
     Xspeed = ((command.walkV));
@@ -77,7 +106,77 @@ void loop(){
     else
       bodyRotZ = ((float)command.lookH)/250.0;
   }
+  byte hByte, lByte, fine;      // highByte and lowByte store high and low bytes of the bearing and fine stores decimal place of bearing
+  char pitch, roll;             // Stores pitch and roll values of CMPS10, chars are used because they support signed value
+  int bearing;                               // Stores full bearing
+   
+  Wire.beginTransmission(ADDRESS);           //starts communication with CMPS10
+  byte by = 2;
+  Wire.send(by);                              //Sends the register we wish to start reading from
+  Wire.endTransmission();
+
+  Wire.requestFrom(ADDRESS, 4);              // Request 4 bytes from CMPS10
+  while(Wire.available() < 4);               // Wait for bytes to become available
+  hByte = Wire.receive();           
+  lByte = Wire.receive();            
+  pitch = Wire.receive();              
+  roll = Wire.receive();               
+   
+  bearing = ((hByte<<8)+lByte)/10;      // Calculate full bearing
+  fine = ((hByte<<8)+lByte)%10;         // Calculate decimal place of bearing
+  
+  int frontIR = analogRead(0);
+  int leftIR = analogRead(1);  
+  int rightIR = analogRead(2); 
+  int backIR = analogRead(3);
+  int servoRightIR = analogRead(4);
+  
+  byte lowFrontIR  = (byte) frontIR;
+  byte highFrontIR = (byte) (frontIR >> 8);
+
+  byte lowLeftIR  = (byte) leftIR;
+  byte highLeftIR = (byte) (leftIR >> 8);
+  
+  byte lowRightIR  = (byte) rightIR;
+  byte highRightIR = (byte) (rightIR >> 8);
+    
+  byte lowBackIR  = (byte) backIR;
+  byte highBackIR = (byte) (backIR >> 8);
+  
+  byte lowServoRightIR  = (byte) servoRightIR;
+  byte highServoRightIR = (byte) (servoRightIR >> 8);
+  
+  ServoRIR.write(servoRPos);
+  servoRPos+=5;
+  if(servoRPos > 180) {
+    servoRPos = 70;
+  }
+  
+  Serial.print("*");   // rbots
+  Serial.print("*");   // rbots
   Serial.print(hitPoint);   // rbots
   Serial.print(tgtPlate);   // rbots
+  Serial.print(hByte);   // rbots
+  Serial.print(lByte);   // rbots
+  Serial.print(pitch);   // rbots
+  Serial.print(roll);   // rbots
+  Serial.print(lowLeftIR);  // rbots
+  Serial.print(highLeftIR); // rbots
+  Serial.print(lowRightIR); // rbots
+  Serial.print(highRightIR); // rbots
+  Serial.print(lowFrontIR);  // rbots
+  Serial.print(highFrontIR); // rbots
+  Serial.print(lowBackIR); // rbots
+  Serial.print(highBackIR); // rbots
+  Serial.print(lowServoRightIR); // rbots
+  Serial.print(highServoRightIR); // rbots
+  Serial.print((byte) servoRPos); // rbots
 }
+
+void callback()
+{
+  digitalWrite(13, LOW);
+  digitalWrite(gunPin,LOW);
+  Timer3.stop();
+}  
 

@@ -1,0 +1,9 @@
+c:\users\z1076653\documents\visual studio 2010\Projects\FormVLC\FormVLC\bin\Debug\FormVLC.exe
+c:\users\z1076653\documents\visual studio 2010\Projects\FormVLC\FormVLC\bin\Debug\FormVLC.pdb
+c:\users\z1076653\documents\visual studio 2010\Projects\FormVLC\FormVLC\obj\x86\Debug\ResolveAssemblyReference.cache
+c:\users\z1076653\documents\visual studio 2010\Projects\FormVLC\FormVLC\obj\x86\Debug\FormVLC.Properties.Resources.resources
+c:\users\z1076653\documents\visual studio 2010\Projects\FormVLC\FormVLC\obj\x86\Debug\GenerateResource.read.1.tlog
+c:\users\z1076653\documents\visual studio 2010\Projects\FormVLC\FormVLC\obj\x86\Debug\GenerateResource.write.1.tlog
+c:\users\z1076653\documents\visual studio 2010\Projects\FormVLC\FormVLC\obj\x86\Debug\FormVLC.exe
+c:\users\z1076653\documents\visual studio 2010\Projects\FormVLC\FormVLC\obj\x86\Debug\FormVLC.pdb
+C:\Users\z1076653\documents\visual studio 2010\Projects\FormVLC\FormVLC\obj\x86\Debug\FormVLC.FormVLC.resources

@@ -9,9 +9,11 @@ using System.Windows.Forms;
 
 using AForge.Video;
 using AForge.Video.DirectShow;
-//using AForge.Imaging;
-//using AForge.Imaging.Filters;
-//using AForge.Imaging.Textures;
+using System.Threading;
+using AForge.Imaging;
+using AForge.Imaging.Filters;
+using AForge.Imaging.Textures;
+using System.IO;
 
 
 namespace CameraTrendnetAForge
@@ -21,12 +23,24 @@ namespace CameraTrendnetAForge
         // This delegate enables asynchronous calls for setting
         // the text property on a TextBox control.
         delegate void SetTextCallback(string text);
+        delegate void SetPictureCallback(ref Bitmap image);
+        private delegate void UIUpdater();
+        private bool portOpen = false;
+        private bool zoomSpeed = false;
+        private bool centerFlag = false;
+
+        private AutoResetEvent are = new AutoResetEvent(false);
 
         // buffers to stor IR 'radar' data, save full sweep before overwriting
-        const int bufferSize = 40;
+        const int bufferSize = 20;
         int idxBufferRight = 0;
         double [] bufferRightIR    = new double[bufferSize];
+        double[] bufferLeftIR = new double[bufferSize];
+        float[] bufferPhi = new float[bufferSize];
         int [] bufferRightIRPos    = new int[bufferSize];
+        int[] bufferLeftIRPos = new int[bufferSize];
+        int currentAz = 0;
+
 
 
         // variables to store for label for serial rx, needed
@@ -40,12 +54,21 @@ namespace CameraTrendnetAForge
         double cmServiRightIR = 0.0;
 
         byte servoPosRight = 0;
+        byte servoPosLeft = 0;
 
         double bearing   = 0.0;
 
+        byte returnCheckSum = 0x00;
 
         // create filter
-       // Mirror filterMirror = new Mirror(false,true);
+        RotateBilinear filterRotate = new RotateBilinear(90.0,true);
+        // create filter
+        CannyEdgeDetector filterCanny = new CannyEdgeDetector();
+        // create filters sequence
+        FiltersSequence filter = new AForge.Imaging.Filters.FiltersSequence();
+
+        Grayscale filterGS = new Grayscale(0.2125, 0.7154, 0.0721);
+        Mirror filterMirror = new Mirror(false, true);
 
         // hitpoints
         byte hitPoints = 20;
@@ -54,7 +77,7 @@ namespace CameraTrendnetAForge
         byte targetPlate = 0;
 
         //
-        private bool latchButton = false; // keep track of button latching for commander protocol
+        private int latchButton = 0; // keep track of button latching for commander protocol
 
         private const float deg2rad = (float) (Math.PI / 180.0);
 
@@ -94,22 +117,37 @@ namespace CameraTrendnetAForge
         //string cameraURL = "http://192.168.1.86/img/video.mjpeg";
         //string cameraURL = "http://192.168.2.175/img/video.mjpeg";
         //string cameraURL = "http://192.168.0.103:8080/live.flv";
-        string cameraURL = "http://192.168.0.103:8080/videofeed";
-        
+        //string cameraURL = "http://192.168.1.16:8080/videofeed";
+        string cameraURL = "http://192.168.0.56:8080/videofeed";
+        //string cameraURL = "http://192.168.0.102:8080/ipcam";
+        Thread t;
+
         public FormPilot()
         {
             
             InitializeComponent();
+            filter.Add(new RotateBicubic(90.0, true));
+            //filter.Add(new Grayscale(0.299, 0.587, 0.114));
+            //filter.Add(new Grayscale(0.2125, 0.7154, 0.0721)); 
+            //filter.Add(new CannyEdgeDetector());
+            
             InitializeCamera();
             InitializeSerialPort();
-            scaleMouseHeight = (double)(trackBarElPos.Maximum - trackBarElPos.Minimum) / mechCamera.Height;
-            scaleMouseWidth = (double)(trackBarAzPos.Maximum - trackBarAzPos.Minimum) / mechCamera.Width;
+            scaleMouseHeight = (double)(trackBarElPos.Maximum - trackBarElPos.Minimum) / pictureBoxMech.Height;
+            scaleMouseWidth = (double)(trackBarAzPos.Maximum - trackBarAzPos.Minimum) / pictureBoxMech.Width;
 
             for (int i = 0; i < bufferRightIR.Length; i++)
             {
-                bufferRightIR[i] = 1000.0;
-                bufferRightIRPos[i] = 70;
+                bufferRightIR[i] = 0.0;
+                bufferRightIRPos[i] = 120;
+
+                bufferLeftIR[i] = 0.0;
+                bufferLeftIRPos[i] = 0;
+
+                bufferPhi[i] = 0;
             }
+
+           
         }
 
         private void InitializeSerialPort()
@@ -117,6 +155,8 @@ namespace CameraTrendnetAForge
             try
             {
                 serialPortMech.Open();
+                portOpen = true;
+                t = new Thread(new ThreadStart(MonitorPort));
                 //serialPortMech.WriteTimeout = 4000;
                 //serialPortMech.Ti
             }
@@ -177,9 +217,28 @@ namespace CameraTrendnetAForge
 
         }
 
-        private void mechCamera_Click(object sender, EventArgs e)
+        private void UIUpdate()
         {
-            
+           // textBox1.Text = serialData;
+        }
+
+        private void MonitorPort()
+        {
+            try
+            {
+                //All this thread does is write the serial data to the UI.
+                //This simple example is not written to prevent data loss!
+                while (portOpen)
+                {
+                    this.Invoke(new UIUpdater(UIUpdate));
+                    Thread.Sleep(100);
+                }
+            }
+            finally
+            {
+                //Signal that the thread is terminating
+                are.Set();
+            }
         }
 
         private void FormTrendnet_FormClosing(object sender, FormClosingEventArgs e)
@@ -194,6 +253,13 @@ namespace CameraTrendnetAForge
                 }
                 if (serialPortMech.IsOpen)
                 {
+                    //serialPortMech.Close();
+                    //Tell MonitorPort() to stop updating the UI
+                    portOpen = false;
+
+                    //Wait for MonitorPort() to signal that it's done
+                    are.WaitOne();
+
                     serialPortMech.Close();
                 }
             }
@@ -203,34 +269,148 @@ namespace CameraTrendnetAForge
             }
         }
 
+
+        // InvokeRequired required compares the thread ID of the
+        private void SetPicture(ref Bitmap image)
+        {
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.mechCamera.InvokeRequired)
+            {
+                SetPictureCallback d = new SetPictureCallback(SetPicture);
+                this.Invoke(d, new object[] { image });
+            }
+            else
+            {
+                try
+                {
+
+                    DateTime now = DateTime.Now;
+                    Bitmap img2 = (Bitmap)filter.Apply(image);
+                    Graphics g = Graphics.FromImage(img2);
+                    //filterCanny.ApplyInPlace(image);
+
+                    // draw cross-hairs
+                    Pen pR = new Pen(Color.Red);
+
+                    // draw center point
+                    Pen pG = new Pen(Color.Green);
+
+
+                    if (!armed)
+                    {
+                        Font armFont = new Font("arial", 16.0f);
+                        Color clr = Color.Red;
+                        SolidBrush br = new SolidBrush(clr);
+
+
+                        g.DrawString("NOT ARMED", armFont, br, 10.0f / 4, 240.0f / 4);
+                    }
+
+                    g.DrawEllipse(pG, 88.0f - 3.0f, 72.0f - 3.0f, 20.0f, 20.0f);
+                    //g.DrawLine(pR, 137.0f, 120.0f, 173.0f, 120.0f);
+                    //g.DrawLine(pR, 150.0f, 107.0f, 150.0f, 133.0f);
+                    g.DrawRectangle(pR, 366.0f / 4, 257.0f / 4, 20.0f / 2, 20.0f / 2);
+                    //filterCanny.ApplyInPlace(img);
+                    //pictureBoxMech.Image = img2;
+                    //mechCamera.BackgroundImage = img;
+                    // mechCamera.
+
+                    pR.Dispose();
+                    pG.Dispose();
+
+                    g.Dispose();
+                }
+                catch (Exception ex)
+                {
+                   textBoxDebug.AppendText(ex.Message.ToString() + System.Environment.NewLine);
+                }
+            }
+        }
+
         private void mechCamera_NewFrame(object sender, ref Bitmap image)
         {
-            DateTime now = DateTime.Now;
-           // filterMirror.ApplyInPlace(image);
-            Graphics g = Graphics.FromImage(image);
-
-            // draw cross-hairs
-            Pen pR = new Pen(Color.Red);
-
-            if (!armed)
+            try
             {
-                Font armFont = new Font("arial",16.0f);
-                Color clr = Color.Red;
-                SolidBrush br = new SolidBrush(clr);
+                // DateTime now = DateTime.Now;
+                // add filters to the sequence
+                //SetPicture(ref image);
+                //filter.Add(new RotateBicubic(90.0, true));
+                //filter.Add(new CannyEdgeDetector());
+               // Bitmap img2 = (Bitmap)image.Clone();
+                // apply the filter sequence
+                Bitmap img2 = (Bitmap)filter.Apply(image);
+                //Bitmap grayImage = new Bitmap( filterGS.Apply(image));
+                //Bitmap newImage = filterRotate.Apply(image);
+                //filterCanny.GaussianSize = 3; 
+                //filterCanny.ApplyInPlace(image);
+                //filterMirror.ApplyInPlace(image);
+                //Bitmap img = (Bitmap)image.Clone();
+                //Bitmap img = (Bitmap) image.Clone();
+                //img = (Bitmap) filterRotate.Apply(img);
+                //img = (Bitmap) filterGS.Apply(img);
+                //Bitmap img2 = (Bitmap)img.Clone();
+                //img2 = (Bitmap) filterGS.Apply(img);
+                //filterCanny.ApplyInPlace(img);
+                //do processing here
+                //pictureBox1.Image = img;
+                // Derive BitMap object using Image instance, so that you can avoid the issue
+                //"a graphics object cannot be created from an image that has an indexed pixel format"
+                Bitmap img = new Bitmap(new Bitmap(img2));
+
+                Graphics g = Graphics.FromImage(img);
+                //filterCanny.ApplyInPlace(image);
+
+                // draw cross-hairs
+                Pen pR = new Pen(Color.Red);
+                // draw center point
+               // Pen pG = new Pen(Color.Green);
+
+
+                if (!armed)
+                {
+                    Font armFont = new Font("arial", 16.0f);
+                    Color clr = Color.Red;
+                    SolidBrush br = new SolidBrush(clr);
+
+
+                    g.DrawString("NOT ARMED", armFont, br, 10.0f / 4, 240.0f / 4);
+                }
+
+                //g.DrawLine(pR, 137.0f, 120.0f, 173.0f, 120.0f);
+                //g.DrawLine(pR, 150.0f, 107.0f, 150.0f, 133.0f);
+                //g.DrawRectangle(pR, 366.0f / 4, 257.0f / 4, 20.0f / 2, 20.0f / 2);
+                g.DrawRectangle(pR, (366.0f / 4.0f)-10.0f, (252.0f / 4.0f) + 10.0f, 20.0f / 2, 20.0f / 2);   //176x144
+               //g.DrawRectangle(pR, (366.0f / 4.0f) - 20.0f, (252.0f / 4.0f) - 10.0f, 20.0f / 2, 20.0f / 2);
+                //g.DrawRectangle(pR, (366.0f / 4.0f) * 1.8f -20.0f, (252.0f / 4.0f) * 1.8f + 15.0f, 20.0f / 2, 20.0f / 2);   // 320x240
                 
+                //g.DrawEllipse(pG, 88.0f - 3.0f, 72.0f - 3.0f, 6.0f, 6.0f);
+                //filterCanny.ApplyInPlace(img);
+                pictureBoxMech.Image = img;
+                //mechCamera.BackgroundImage = img;
+                // mechCamera.
 
-                g.DrawString("NOT ARMED", armFont, br, 10.0f/4, 240.0f/4);
+                pR.Dispose();
+                //pG.Dispose();
+                g.Dispose();
+
+                //img2.Dispose();
+                //img.Dispose();
+                //grayImage.Dispose();
+                //updateData();
+                
+                //Calling the UI thread using the Dispatcher to update the 'Image' WPF control         
+                
+                //  .Dispatcher.BeginInvoke(new ThreadStart(delegate
+                //{
+                //    pictureBoxMech.Image = img2; /*frameholder is the name of the 'Image' WPF control*/
+                //}));
             }
-            
-            //g.DrawLine(pR, 137.0f, 120.0f, 173.0f, 120.0f);
-            //g.DrawLine(pR, 150.0f, 107.0f, 150.0f, 133.0f);
-            g.DrawRectangle(pR, 366.0f/4, 257.0f/4 , 20.0f/2, 20.0f/2);
-
-            
-            pR.Dispose();
-
-            g.Dispose();
-            updateData();
+            catch (Exception ex)
+            {
+                int i = 1;
+               // textBoxDebug.AppendText(ex.Message.ToString() + System.Environment.NewLine);
+            }
         }
 
         private void timer_Tick(object sender, EventArgs e)
@@ -264,7 +444,7 @@ namespace CameraTrendnetAForge
                 toolStripLabelFPS.Text = fps.ToString("F2") + " fps";
             }
 
-            textBoxFocus.AppendText(this.ActiveControl.ToString() + Environment.NewLine);
+            //textBoxFocus.AppendText(this.ActiveControl.ToString() + Environment.NewLine);
             updateData();
         }
 
@@ -272,7 +452,8 @@ namespace CameraTrendnetAForge
         {
             textBoxElPos.Text = trackBarElPos.Value.ToString();
             updateTurret();
-            mechCamera.Focus();
+            //pictureBoxMech.Focus();
+            
         }
 
         private void updateTurret()
@@ -287,22 +468,34 @@ namespace CameraTrendnetAForge
                // //short goalElSpeed = (short)(1023 * trackBarElSpeed.Value / 114);
                // //short goalAzPos = (short)(1023 * trackBarAzPos.Value / 300);
                // //short goalAzSpeed = (short)(1023 * trackBarAzSpeed.Value / 114);
+                if (zoomSpeed)
+                {
+                    trackBarAzSpeed.Value = 50;
+                }
+                else
+                {
+                    trackBarAzSpeed.Value = 150;
+                }
+
                short goalElPos = (short) ( trackBarElPos.Maximum - trackBarElPos.Value + trackBarElPos.Minimum ) ;
-               // short goalElSpeed = (short)trackBarElSpeed.Value;
+               short goalElSpeed = (short)trackBarElSpeed.Value;
                short goalAzPos = (short)(trackBarAzPos.Maximum - trackBarAzPos.Value + trackBarAzPos.Minimum);
-               //// short goalAzPos = (short)(trackBarAzPos.Value);
-               // short goalAzSpeed = (short)trackBarAzSpeed.Value;
+               //short goalAzPos = 900;  //testing the CCW limit in AX12;
+               //short goalAzPos = (short)(trackBarAzPos.Value);
+               short goalAzSpeed = (short)trackBarAzSpeed.Value;
                byte goalElPosLow = (byte)(goalElPos & 0xff);
                byte goalElPosHigh = (byte)(goalElPos >> 8);
                byte goalAzPosLow = (byte)(goalAzPos & 0xff);
                byte goalAzPosHigh = (byte)(goalAzPos >> 8);
-               // byte goalElSpeedLow = (byte)(goalElSpeed & 0xff);
-               // byte goalElSpeedHigh = (byte)(goalElSpeed >> 8);
-               // byte goalAzSpeedLow = (byte)(goalAzSpeed & 0xff);
-               // byte goalAzSpeedHigh = (byte)(goalAzSpeed >> 8);
+
+               currentAz = trackBarAzPos.Value; 
+               byte goalElSpeedLow = (byte)(goalElSpeed & 0xff);
+               byte goalElSpeedHigh = (byte)(goalElSpeed >> 8);
+               byte goalAzSpeedLow = (byte)(goalAzSpeed & 0xff);
+               byte goalAzSpeedHigh = (byte)(goalAzSpeed >> 8);
 
                ////byte[] cmdBytes = new byte[cmdLength] { 0x2A, cmdLeg, 0x00, goalElPosLow, goalElPosHigh, goalElSpeedLow, goalElSpeedHigh,
-               // //                             goalAzPosLow, goalAzPosHigh, goalAzSpeedLow, goalAzSpeedHigh,  gunFire};
+               // //                             goalAzPosLow, goalAzPosHigh, goalAzSpeedLow, goalAzSpeedHigh,  gunxsFire};
 
                // byte[] cmdBytes = new byte[8] { 0xFF, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
                // cmdBytes[7] = (byte) (0xFF - (byte) (cmdBytes[1] + cmdBytes[2] + cmdBytes[3] + cmdBytes[4] + cmdBytes[5]));
@@ -333,16 +526,21 @@ namespace CameraTrendnetAForge
                 byte byteButton = 0x00;
                 byte byteExt = 0x00;
 
-                if (latchButton)
-                {
-                    byteButton = 0x80;
-                    latchButton = false;
-                }
-                else
-                {
-                    byteButton = 0x00;
-
-                }
+                //if (latchButton == 0)
+                //{
+                //    byteButton = 0x00;
+                //}
+                //else if (latchButton == 1)
+                //{
+                    
+                //    byteButton = 0x00;
+                //    latchButton = 2;
+                //}
+                //else if (latchButton == 2)
+                //{
+                //    byteButton = 0x80;
+                //    latchButton = 0;
+                //}
 
 
                 switch (cmdLeg)
@@ -377,30 +575,44 @@ namespace CameraTrendnetAForge
                         byteLVert = 0x80;  //  3 decimal   - see commander Protocol
                         byteLHorz = 0x03;  //  80 decimal  - neutral position
                         byteButton = 0x80; // to strafe left top butoon
-                        latchButton = true;
+                        //latchButton = 1;
                         break;
                     // Strafe right
                     case 0x02:
                         byteLVert = 0x80;  //  3 decimal   - see commander Protocol
                         byteLHorz = 0xFD;  //  80 decimal  - neutral position
                         byteButton = 0x80; // to strafe left top butoon
-                        latchButton = true;
+                        //qlatchButton = 1;
                         break;
 
                 }
                 // Calculate the checksum + display it
-                byte byteChecksum = (byte)(0xFF - (byte)(byteRVert + byteRHorz + byteLVert + byteLHorz + byteButton + byteExt) % 256);
+                //byte byteChecksum = (byte)(0xFF - (byte)(byteRVert + byteRHorz + byteLVert + byteLHorz + byteButton + byteExt) % 256);
+                byte byteChecksum = (byte)~(byteRVert + byteRHorz + byteLVert + byteLHorz + byteButton + byteExt  + goalAzPosLow + goalAzPosHigh + goalElPosLow + goalElPosHigh + gunFire + goalAzSpeedLow + goalAzSpeedHigh + goalElSpeedLow + goalElSpeedHigh) ;
+
+                textBoxFocus.AppendText(byteChecksum.ToString() + Environment.NewLine);
 
                 //goalAzPosLow = 0; goalAzPosHigh = 0; goalElPosLow = 0; goalElPosHigh = 0;
-
-                byte[] cmdBytes = new byte[13] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, goalAzPosLow, goalAzPosHigh, goalElPosLow, goalElPosHigh, gunFire, byteChecksum };
+                // make sure these bytes are are not 0xFF, if so change to 0xFE
+                // this is because our start of message uses 0xFF
+                if (goalAzPosLow == 0xFF) { goalAzPosLow = 0xFE; }
+                if (goalElPosLow == 0xFF) { goalElPosLow = 0xFE; }
+                byte[] cmdBytes = new byte[17] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, goalAzPosLow, goalAzPosHigh, goalElPosLow, goalElPosHigh, gunFire, goalAzSpeedLow, goalAzSpeedHigh, goalElSpeedLow, goalElSpeedHigh, byteChecksum };
                 //byte[] cmdBytes = new byte[8] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, byteChecksum };
                 //byte[] cmdBytes = new byte[9] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, goalAzPosLow, byteChecksum };
-                cmdLength = 13;
+                cmdLength = 17;
                 if (serialPortMech.IsOpen)
                 {
                     serialPortMech.Write(cmdBytes, 0, cmdLength);
+                    //if (cmdLeg == 0x02 || cmdLeg == 0x04)
+                    //{
+                    //    byteButton = 0x00;
+                    //    latchButton = 2;
+                    //    serialPortMech.Write(cmdBytes, 0, cmdLength);
+                    //}
                 }
+
+                
                 gunFire = 0x00;
                 panelGunOrientation.Refresh();
 
@@ -414,20 +626,23 @@ namespace CameraTrendnetAForge
         private void trackBarElSpeed_ValueChanged(object sender, EventArgs e)
         {
             textBoxElSpeed.Text = trackBarElSpeed.Value.ToString();
-            mechCamera.Focus();
+            //mechCamera.Focus();
+            pictureBoxMech.Focus();
         }
 
         private void trackBarAzPos_ValueChanged(object sender, EventArgs e)
         {
             textBoxAzPos.Text = trackBarAzPos.Value.ToString();
             updateTurret();
-            mechCamera.Focus();
+            //mechCamera.Focus();
+            pictureBoxMech.Focus();
         }
 
         private void trackBarAzSpeed_ValueChanged(object sender, EventArgs e)
         {
             textBoxAzSpeed.Text = trackBarAzSpeed.Value.ToString();
-            mechCamera.Focus();
+            //mechCamera.Focus();
+            pictureBoxMech.Focus();
         }
 
         private void buttonFire_Click(object sender, EventArgs e)
@@ -437,12 +652,14 @@ namespace CameraTrendnetAForge
                 gunFire = 0x01;
                 updateTurret();
             }
-            mechCamera.Focus();
+            //mechCamera.Focus();
+            pictureBoxMech.Focus();
         }
 
         private void checkBoxMouseControl_CheckedChanged(object sender, EventArgs e)
         {
-            mechCamera.Focus();
+            pictureBoxMech.Focus();
+            //pictureBoxMech.Focus();
         }
 
         private void FormPilot_MouseMove(object sender, MouseEventArgs mouseCurrent)
@@ -462,11 +679,11 @@ namespace CameraTrendnetAForge
             //    }
 
             //}
-            textBoxDebug.AppendText("mechCamera_Click_1" + System.Environment.NewLine);
+            textBoxDebug.AppendText("pictureBoxMech_Click_1" + System.Environment.NewLine);
             
         }
 
-        private void mechCamera_MouseMove(object sender, MouseEventArgs mouseCurrent)
+        private void pictureBoxMech_MouseMove(object sender, MouseEventArgs mouseCurrent)
         {
             // if mouse control box is checked then move turret based on mouse movements
             if (checkBoxMouseControl.Checked)
@@ -516,20 +733,17 @@ namespace CameraTrendnetAForge
 
         }
 
-        private void mechCamera_Click_1(object sender, EventArgs e)
+        private void pictureBoxMech_Click_1(object sender, EventArgs e)
         {
-            mechCamera.Focus();
-   
+            pictureBoxMech.Focus();
+
         }
 
         private void FormPilot_KeyDown(object sender, KeyEventArgs e)
         {
             textBoxDebug.AppendText("FormPilot_KeyDown" + System.Environment.NewLine);
-        }
 
-        private void mechCamera_KeyDown(object sender, KeyEventArgs e)
-        {
-             if (e.KeyData == Keys.W)
+            if (e.KeyData == Keys.W)
             {
                 cmdLeg = 0x05;
             }
@@ -555,51 +769,64 @@ namespace CameraTrendnetAForge
             }
             else if (e.KeyData == Keys.X)
             {
-                 cmdLeg = 0x07;
+                cmdLeg = 0x07;
             }
-             // If ready to arm check box is checked and key P was pressed,
-             // then arm the MechWarrior
-             else if (e.KeyData == Keys.P)
-             {
-                 if (checkBoxArm.Checked)
-                 {
-                     armed = true;
-                     labelArm.Text = "Armed";
-                     labelArm.ForeColor = Color.Red;
-                 }
-             }
-             // DISARM MechWarrior if O key is pressed
-             else if (e.KeyData == Keys.O)
-             {
-                 armed = false;
-                 labelArm.Text = "Not Armed";
-                 labelArm.ForeColor = Color.Green;
-                 checkBoxArm.Checked = false;
+            // If ready to arm check box is checked and key P was pressed,
+            // then arm the MechWarrior
+            else if (e.KeyData == Keys.P)
+            {
+                if (checkBoxArm.Checked)
+                {
+                    armed = true;
+                    labelArm.Text = "Armed";
+                    labelArm.ForeColor = Color.Red;
+                }
+            }
+            // DISARM MechWarrior if O key is pressed
+            else if (e.KeyData == Keys.O)
+            {
+                armed = false;
+                labelArm.Text = "Not Armed";
+                labelArm.ForeColor = Color.Green;
+                checkBoxArm.Checked = false;
 
 
-             }
-             else if (e.KeyData == Keys.Space)
-             {
-                 if (checkBoxMouseControl.Checked)
-                 {
-                     checkBoxMouseControl.Checked = false;
-                 }
-                 else
-                 {
-                     checkBoxMouseControl.Checked = true;
+            }
+            else if (e.KeyData == Keys.Space)
+            {
+                if (checkBoxMouseControl.Checked)
+                {
+                    checkBoxMouseControl.Checked = false;
+                }
+                else
+                {
+                    checkBoxMouseControl.Checked = true;
 
-                 }
-             }
-             else if (e.KeyCode == Keys.L)
-             {
-                 timerMatchClock.Start();
-             }
-             else
-             {
-                 cmdLeg = 0x00;
-             }
+                }
+            }
+            else if (e.KeyCode == Keys.L)
+            {
+                timerMatchClock.Start();
+            }
+            else if (e.KeyCode == Keys.Z)
+            {
+                zoomSpeed = !zoomSpeed;
+            }
+            else if (e.KeyCode == Keys.C)
+            {
+                centerFlag = true;
+            }
+            else
+            {
+                cmdLeg = 0x00;
+            }
             updateTurret();
-            textBoxDebug.AppendText("mechCamera_KeyDown" + System.Environment.NewLine);
+        }
+
+        private void pictureBoxMech_KeyDown(object sender, KeyEventArgs e)
+        {
+            
+            textBoxDebug.AppendText("pictureBoxMech_KeyDown" + System.Environment.NewLine);
 
         }
 
@@ -701,14 +928,14 @@ namespace CameraTrendnetAForge
 
         }
 
-        private void mechCamera_MouseDown(object sender, MouseEventArgs e)
+        private void pictureBoxMech_MouseDown(object sender, MouseEventArgs e)
         {
 
             textBoxDebug.AppendText("X Pos: " + e.X.ToString() + ", Y Pos: " + e.Y.ToString() + System.Environment.NewLine);
 
             if (e.Button ==  MouseButtons.Right)
             {
-                mechCamera.Focus();
+                pictureBoxMech.Focus();
                 checkBoxMouseControl.Checked = true;
             }
             else if (e.Button == MouseButtons.Left)
@@ -723,7 +950,7 @@ namespace CameraTrendnetAForge
 
             }
 
-            textBoxDebug.AppendText("mechCamera_MouseDown" + System.Environment.NewLine);
+            textBoxDebug.AppendText("pictureBoxMech_MouseDown" + System.Environment.NewLine);
         }
 
         private void checkBoxArm_CheckStateChanged(object sender, EventArgs e)
@@ -732,14 +959,14 @@ namespace CameraTrendnetAForge
             {
                 labelArm.Text = "READY TO ARM";
                 labelArm.ForeColor = Color.MediumBlue;
-                mechCamera.Focus();
+                pictureBoxMech.Focus();
             }
             else
             {
                 armed = false;
                 labelArm.Text = "NOT ARMED";
                 labelArm.ForeColor = Color.Green;
-                mechCamera.Focus();
+                pictureBoxMech.Focus();
 
 
             }
@@ -749,12 +976,12 @@ namespace CameraTrendnetAForge
 
         private void labelPKeyArm_Click(object sender, EventArgs e)
         {
-            mechCamera.Focus();
+            //pictureBoxMech.Focus();
         }
 
         private void labelArm_Click(object sender, EventArgs e)
         {
-            mechCamera.Focus();
+           // pictureBoxMech.Focus();
         }
 
         private void timerMatchClock_Tick(object sender, EventArgs e)
@@ -780,9 +1007,10 @@ namespace CameraTrendnetAForge
             const int offsetIRX = 16;   // offset from center of mech body to IR in pixels, 11 cm
             const int offsetIRY = 7;    // offset from center of mech body to IR in pixels, 11 cm
             const int boxIRwidth = 4;
-            const float offsetAZ = 90.0f;  //   AX-12 offset in degrees, ie. if AZ motor is at 90 deg, than it is forward facing to mech body
-            const int offsetBearing = 182;  // offset in degrees from North to Local arean reference
-            const float offsetRservo = 90.0f;
+            const float offsetAZ = 150.0f;  //   AX-12 offset in degrees, ie. if AZ motor is at 90 deg, than it is forward facing to mech body
+            const int offsetBearing = 180;  // offset in degrees from North to Local arean reference
+            const float offsetRservo = -20.0f; // 90.0f;
+            const float offsetLservo = 90.0f; // -75.0f;
 
             // draw gun orientation to panel
             Graphics grfx = panelGunOrientation.CreateGraphics();
@@ -795,14 +1023,14 @@ namespace CameraTrendnetAForge
             greenPen.Width = 5;
             Pen blackPen = new Pen(Color.Black);
             int xp2 = center;
-            int yp2 = center - (int)mechHalfWidth;
+            int yp2 = center; // -(int)mechHalfWidth;
             const float lineLength = 90.0f;  // lenth in pixels of how long gun viz is
             float bearingLineLength = mechHalfWidth;
             
             const float bit2deg = 1024.0f / 300.0f;
             float theta = trackBarAzPos.Value / bit2deg;  // azimuth angle in degrees
             //float phi = theta - 150;
-            float phi = theta - offsetAZ;
+            float phi = theta -offsetAZ;
             // convert to radians
             phi *= deg2rad;
             float x1 = lineLength * (float) Math.Sin(phi);
@@ -810,17 +1038,32 @@ namespace CameraTrendnetAForge
             float xp1 = x1 + xp2;
             float yp1 = yp2 - y1;
 
+            // draw bearing - consider moving to draw on video also
+            float phiBearing = (float)bearing - offsetBearing;
+
+
+            // Set world transform of graphics object to translate.
+            grfx.TranslateTransform(center,center);
+
+            // Then to rotate, prepending rotation matrix.
+            grfx.RotateTransform(phiBearing);
+
+            // Set world transform of graphics object to translate.
+            grfx.TranslateTransform(-center, -center);
+
             // draw mech body as rectangle
             grfx.DrawRectangle(blackPen, center - (int)mechHalfWidth, center - (int)mechHalfWidth, (int)mechWidth,(int) mechWidth);
 
             // draw gun barrel, update based on orientation
             grfx.DrawLine(redPen,xp1,yp1,xp2,yp2);
 
-            // draw bearing - consider moving to draw on video also
-            float phiBearing = (float) bearing - offsetBearing;
+            // draw 25 cm ring around mech body for detecting stuff around
+            float ringDetect = 25.0f * cm2pixel * 4.0f;
+            grfx.DrawEllipse(blackPen, center - ringDetect / 2, center - ringDetect/2, ringDetect, ringDetect);
+
             phiBearing *= deg2rad;   //convert to radians
-            x1 = bearingLineLength * (float) Math.Sin(phiBearing);
-            y1 = bearingLineLength * (float) Math.Cos(phiBearing);
+            x1 = 0.0f; //*(float)Math.Sin(phiBearing);
+            y1 = bearingLineLength;// *(float)Math.Cos(phiBearing);
             xp1 = x1 + center;
             yp1 = center - y1;
             grfx.DrawLine(bluePen, xp1, yp1, center, center);
@@ -830,22 +1073,60 @@ namespace CameraTrendnetAForge
                 // draw right sweeping sensor
                 float cmServiRightIRTemp = (float)bufferRightIR[i];
                 int servoPosRightTemp = bufferRightIRPos[i];
-                if (cmServiRightIRTemp < 150.0 && cmServiRightIRTemp > 0.0 && servoPosRightTemp < 170)
+                if (cmServiRightIRTemp < 150.0 && cmServiRightIRTemp > 0.0)// && servoPosRightTemp < 110 && servoPosRightTemp > 40)
                 {
 
                     float servoRphi = (float)servoPosRightTemp - offsetRservo;
                     servoRphi *= deg2rad;  //convert to rad
-                    x1 = (float)cmServiRightIRTemp * cm2pixel * (float)Math.Sin(servoRphi);
-                    y1 = (float)cmServiRightIRTemp * cm2pixel * (float)Math.Cos(servoRphi);
-                    float x2 = x1 * (float)Math.Cos(-phi) - y1 * (float)Math.Sin(-phi);
-                    float y2 = x1 * (float)Math.Sin(-phi) + y1 * (float)Math.Cos(-phi);
+                    //x1 = (float)cmServiRightIRTemp * cm2pixel * (float)Math.Sin(servoRphi);
+                    //y1 = (float)cmServiRightIRTemp * cm2pixel * (float)Math.Cos(servoRphi);
+                    //float x2 = x1 * (float)Math.Cos(-bufferPhi[i]) - y1 * (float)Math.Sin(-bufferPhi[i]);
+                    //float y2 = x1 * (float)Math.Sin(-bufferPhi[i]) + y1 * (float)Math.Cos(-bufferPhi[i]);
 
-                    xp1 = x2 + center + 6;
-                    yp1 = center - y2 - 5 * cm2pixel;
+                    //x1 = (float)cmServiRightIRTemp * cm2pixel * (float)Math.Cos(bufferPhi[i] + servoRphi);
+                    //y1 = (float)cmServiRightIRTemp * cm2pixel * (float)Math.Sin(bufferPhi[i] + servoRphi);
+                    
+                    x1 = (float)(cmServiRightIRTemp * cm2pixel + mechHalfWidth) * (float)Math.Cos(servoRphi - 90 * deg2rad - bufferPhi[i]);
+                    y1 = (float)(cmServiRightIRTemp * cm2pixel  + mechHalfWidth ) * (float)Math.Sin(servoRphi - 90 * deg2rad - bufferPhi[i]);
+
+                    xp1 = x1 + center;// +mechHalfWidth; // +6;
+                    yp1 = center - y1;// -mechHalfWidth;
+                    //yp1 = center - y2 - 5 * cm2pixel;
                     blackPen.Width = 5;
 
                     // save coordinates into buffer
                     grfx.DrawEllipse(blackPen, xp1, yp1, 2.0f, 2.0f);
+
+                    
+                }
+
+                // draw left sweeping sensor
+                float cmServoLeftIRTemp = (float)bufferLeftIR[i];
+                int servoPosLeftTemp = bufferLeftIRPos[i];
+                if (cmServoLeftIRTemp < 150.0 && cmServoLeftIRTemp > 0.0)// && servoPosLeftTemp < 170 && servoPosLeftTemp > 100)
+                {
+
+                    float servoLphi = (float)servoPosLeftTemp - offsetLservo;
+                    servoLphi *= deg2rad;  //convert to rad
+                    //x1 = (float)cmServoLeftIRTemp * cm2pixel * (float)Math.Sin(servoLphi);
+                    //y1 = (float)cmServoLeftIRTemp * cm2pixel * (float)Math.Cos(servoLphi);
+                    //float x2L = x1 * (float)Math.Cos(bufferPhi[i]) - y1 * (float)Math.Sin(bufferPhi[i]);
+                    //float y2L = x1 * (float)Math.Sin(bufferPhi[i]) + y1 * (float)Math.Cos(bufferPhi[i]);
+
+                    //x1 = (float)cmServoLeftIRTemp * cm2pixel * (float)Math.Cos(bufferPhi[i] + servoLphi);
+                    //y1 = (float)cmServoLeftIRTemp * cm2pixel * (float)Math.Sin(bufferPhi[i] + servoLphi);
+
+                    x1 = (float)(cmServoLeftIRTemp * cm2pixel + mechHalfWidth) * (float)Math.Cos(servoLphi + 180 * deg2rad - bufferPhi[i]);
+                    y1 = (float)(cmServoLeftIRTemp * cm2pixel + mechHalfWidth) * (float)Math.Sin(servoLphi + 180 * deg2rad - bufferPhi[i]);
+
+                    //xp1 = x2L - center - 6;
+                    //yp1 = center - y2L - 5 * cm2pixel;
+                    xp1 = x1 + center;// -mechHalfWidth;
+                    yp1 = center - y1;// -mechHalfWidth;
+                    //blackPen.Width = 5;
+
+                    // save coordinates into buffer
+                    grfx.DrawEllipse(greenPen, xp1, yp1, 2.0f, 2.0f);
 
 
                 }
@@ -1066,6 +1347,22 @@ namespace CameraTrendnetAForge
             }
         }
 
+        private void SetLabelServoLIR(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.labelServoL.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetLabelServoLIR);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.labelServoL.Text = text;
+            }
+        }
+
         private void SetLabelServoRPosIR(string text)
         {
             // InvokeRequired required compares the thread ID of the
@@ -1079,6 +1376,22 @@ namespace CameraTrendnetAForge
             else
             {
                 this.labelServoRPos.Text = text;
+            }
+        }
+
+        private void SetLabelServoLPosIR(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.labelServoLPos.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetLabelServoLPosIR);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.labelServoLPos.Text = text;
             }
         }
 
@@ -1098,19 +1411,35 @@ namespace CameraTrendnetAForge
             }
         }
 
+        private void SetLabelChecksum(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.textBoxFocus.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetLabelChecksum);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.textBoxFocus.AppendText("Return Check: " + text + System.Environment.NewLine) ;
+            }
+        }
+
 
         private void updateData()
         {
-            //labelBearingInt.Text    = String.Format("{0:f0}", bearing);
-            //labelLeftIR.Text        = String.Format("{0:f0}", cmLeftIR);
-            //labelRightIR.Text       = String.Format("{0:f0}", cmRightIR);
-            //labelFrontIR.Text       = String.Format("{0:f0}", cmFrontIR); 
-            //labelBackIR.Text        = String.Format("{0:f0}", cmBackIR);
-            //labelServoR.Text        = String.Format("{0:f0}", cmServiRightIR);
-            //labelServoRPos.Text     = servoPosRight.ToString();
-            //labelHitPoints.Text     = hitPoints.ToString();
-            //labelTargetPlate.Text   = targetPlate.ToString();
-           
+            //labelBearingInt.Text = String.Format("{0:f0}", bearing);
+            //labelLeftIR.Text = String.Format("{0:f0}", cmLeftIR);
+            //labelRightIR.Text = String.Format("{0:f0}", cmRightIR);
+            //labelFrontIR.Text = String.Format("{0:f0}", cmFrontIR);
+            //labelBackIR.Text = String.Format("{0:f0}", cmBackIR);
+            //labelServoR.Text = String.Format("{0:f0}", cmServiRightIR);
+            //labelServoRPos.Text = servoPosRight.ToString();
+            //labelHitPoints.Text = hitPoints.ToString();
+            //labelTargetPlate.Text = targetPlate.ToString();
+
             SetLabel(hitPoints.ToString());
             SetLabelBearing(String.Format("{0:f0}", bearing));
             SetLabelLeftIR(String.Format("{0:f0}", cmLeftIR));
@@ -1119,19 +1448,32 @@ namespace CameraTrendnetAForge
             SetLabelBackIR(String.Format("{0:f0}", cmBackIR));
             SetLabelServoRIR(String.Format("{0:f0}", cmServiRightIR));
             SetLabelServoRPosIR(servoPosRight.ToString());
+            SetLabelServoLIR(String.Format("{0:f0}", cmServoLeftIR));
+            SetLabelServoLPosIR(servoPosLeft.ToString());
             SetLabelTargetPlate(targetPlate.ToString());
+            SetLabelChecksum(returnCheckSum.ToString());
 
             
+
         }
+        double gp2d12_range(short value)
+        {
+
+            if (value < 3)
+                return -1;  //invalid value
+
+            return (6787.0 / ((double)value - 3.0)) - 4.0;
+        }
+
         private void serialPortMech_DataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
         {
             // read from bot
             try
             {
-                if (serialPortMech.BytesToRead > 18) // if new data is available
+                if (serialPortMech.BytesToRead > 22) // if new data is available
                 {
-                    byte[] recBytes = new byte[19];
-                    serialPortMech.Read(recBytes, 0, 19);
+                    byte[] recBytes = new byte[23];
+                    serialPortMech.Read(recBytes, 0, 23);
                     //for (int k = 0; k < 12; k++)
                     //{
                     //    textBoxDebug.AppendText(recBytes[k].ToString());
@@ -1169,8 +1511,14 @@ namespace CameraTrendnetAForge
                         bytesServoRightIR[0] = recBytes[16];   // low byte of front analog Sharp IR sensor reading
                         bytesServoRightIR[1] = recBytes[17];    // high byte of front analog Sharp IR sensor reading
 
-                        servoPosRight = recBytes[18]; 
+                        servoPosRight = recBytes[18];
 
+                        byte[] bytesServoLeftIR = new byte[2];
+                        bytesServoLeftIR[0] = recBytes[19];    // low byte of front analog Sharp IR sensor reading
+                        bytesServoLeftIR[1] = recBytes[20];    // high byte of front analog Sharp IR sensor reading
+
+                        servoPosLeft = recBytes[21];
+                        returnCheckSum = recBytes[22];
 
                         short leftIRInt  = BitConverter.ToInt16(bytesLeftIR,0);  // convert from 2 bytes to int
                         short rightIRInt = BitConverter.ToInt16(bytesRightIR, 0); // convert from 2 bytes to int
@@ -1178,26 +1526,36 @@ namespace CameraTrendnetAForge
                         short backIRInt  = BitConverter.ToInt16(bytesBackIR, 0); // convert from 2 bytes to int
 
                         short servoRightIRInt = BitConverter.ToInt16(bytesServoRightIR, 0); // convert from 2 bytes to int
+                        short servoLeftIRInt = BitConverter.ToInt16(bytesServoLeftIR, 0); // convert from 2 bytes to int
 
                         double VOLTS_PER_UNIT = 0.0049;
 
                         double voltsLeft  = (double)leftIRInt  * VOLTS_PER_UNIT;
                         double voltsRight = (double)rightIRInt * VOLTS_PER_UNIT;
-                        double voltsFront = (double)frontIRInt * VOLTS_PER_UNIT;
+                        //double voltsFront = (double)frontIRInt * VOLTS_PER_UNIT;
                         double voltsBack  = (double)backIRInt  * VOLTS_PER_UNIT;
 
                         double voltsServoRight = (double)servoRightIRInt * VOLTS_PER_UNIT;
+                        double voltsServoLeft = (double)servoLeftIRInt * VOLTS_PER_UNIT;
 
                         cmLeftIR  = 60.495 * Math.Pow(voltsLeft, -1.1904);
                         cmRightIR = 60.495 * Math.Pow(voltsRight, -1.1904);
-                        cmFrontIR = 60.495 * Math.Pow(voltsFront, -1.1904);
+                        //cmFrontIR = 60.495 * Math.Pow(voltsFront, -1.1904);
+                        cmFrontIR = gp2d12_range(frontIRInt);
                         cmBackIR  = 60.495 * Math.Pow(voltsBack, -1.1904);
 
                         cmServiRightIR = 60.495 * Math.Pow(voltsServoRight, -1.1904);
+                        cmServoLeftIR = 60.495 * Math.Pow(voltsServoLeft, -1.1904);
 
 
                         bufferRightIR[idxBufferRight] = cmServiRightIR;
+                        bufferLeftIR[idxBufferRight] = cmServoLeftIR;
                         bufferRightIRPos[idxBufferRight] = (int)servoPosRight;
+                        bufferLeftIRPos[idxBufferRight] = (int)servoPosLeft;
+                        const float bit2deg = 1024.0f / 300.0f;
+                        const float offsetAZ = 150.0f;
+                        float theta = currentAz / bit2deg;  // azimuth angle in degrees
+                        bufferPhi[idxBufferRight] = (theta - offsetAZ)*deg2rad;
                         idxBufferRight++;
                         if(idxBufferRight >= bufferSize)
                         {
@@ -1205,6 +1563,7 @@ namespace CameraTrendnetAForge
                         }
                         
                     }
+                    updateData();
                     serialPortMech.DiscardInBuffer();
                     
                 }
@@ -1229,7 +1588,7 @@ namespace CameraTrendnetAForge
                 textBoxDebug.AppendText(ex.Message.ToString() + Environment.NewLine);
             }
 
-            updateData();
+            //updateData();
             panelGunOrientation.Invalidate();
            
         }

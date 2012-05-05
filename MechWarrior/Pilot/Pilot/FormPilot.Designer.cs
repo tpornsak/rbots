@@ -84,11 +84,14 @@
             this.labelServoLPos = new System.Windows.Forms.Label();
             this.label15 = new System.Windows.Forms.Label();
             this.labelServoRPos = new System.Windows.Forms.Label();
+            this.pictureBoxMech = new System.Windows.Forms.PictureBox();
             this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarElPos)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarAzPos)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarElSpeed)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarAzSpeed)).BeginInit();
+            this.panelGunOrientation.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxMech)).BeginInit();
             this.SuspendLayout();
             // 
             // textBoxDebug
@@ -116,18 +119,15 @@
             // mechCamera
             // 
             this.mechCamera.BackColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.mechCamera.Location = new System.Drawing.Point(25, 73);
+            this.mechCamera.Location = new System.Drawing.Point(24, 83);
             this.mechCamera.Margin = new System.Windows.Forms.Padding(0);
             this.mechCamera.Name = "mechCamera";
             this.mechCamera.Size = new System.Drawing.Size(640, 480);
             this.mechCamera.TabIndex = 2;
             this.mechCamera.Text = "videoSourcePlayer1";
             this.mechCamera.VideoSource = null;
+            this.mechCamera.Visible = false;
             this.mechCamera.NewFrame += new AForge.Controls.VideoSourcePlayer.NewFrameHandler(this.mechCamera_NewFrame);
-            this.mechCamera.Click += new System.EventHandler(this.mechCamera_Click_1);
-            this.mechCamera.KeyDown += new System.Windows.Forms.KeyEventHandler(this.mechCamera_KeyDown);
-            this.mechCamera.MouseDown += new System.Windows.Forms.MouseEventHandler(this.mechCamera_MouseDown);
-            this.mechCamera.MouseMove += new System.Windows.Forms.MouseEventHandler(this.mechCamera_MouseMove);
             // 
             // timer
             // 
@@ -139,9 +139,9 @@
             this.toolStrip1.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripLabelFPS});
-            this.toolStrip1.Location = new System.Drawing.Point(0, 707);
+            this.toolStrip1.Location = new System.Drawing.Point(0, 584);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(1208, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(1028, 25);
             this.toolStrip1.TabIndex = 3;
             this.toolStrip1.Text = "toolStrip1";
             // 
@@ -154,13 +154,13 @@
             // trackBarElPos
             // 
             this.trackBarElPos.Location = new System.Drawing.Point(781, 541);
-            this.trackBarElPos.Maximum = 700;
-            this.trackBarElPos.Minimum = 500;
+            this.trackBarElPos.Maximum = 750;
+            this.trackBarElPos.Minimum = 545;
             this.trackBarElPos.Name = "trackBarElPos";
             this.trackBarElPos.Size = new System.Drawing.Size(230, 45);
             this.trackBarElPos.TabIndex = 4;
             this.trackBarElPos.TickStyle = System.Windows.Forms.TickStyle.None;
-            this.trackBarElPos.Value = 600;
+            this.trackBarElPos.Value = 700;
             this.trackBarElPos.ValueChanged += new System.EventHandler(this.trackBar1_ValueChanged);
             this.trackBarElPos.KeyDown += new System.Windows.Forms.KeyEventHandler(this.trackBarElPos_KeyDown);
             this.trackBarElPos.MouseMove += new System.Windows.Forms.MouseEventHandler(this.trackBarElPos_MouseMove);
@@ -187,13 +187,13 @@
             // serialPortMech
             // 
             this.serialPortMech.BaudRate = 38400;
-            this.serialPortMech.PortName = "COM4";
+            this.serialPortMech.PortName = "COM20";
             this.serialPortMech.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(this.serialPortMech_DataReceived);
             // 
             // trackBarAzPos
             // 
             this.trackBarAzPos.Location = new System.Drawing.Point(781, 624);
-            this.trackBarAzPos.Maximum = 818;
+            this.trackBarAzPos.Maximum = 1023;
             this.trackBarAzPos.Name = "trackBarAzPos";
             this.trackBarAzPos.Size = new System.Drawing.Size(230, 45);
             this.trackBarAzPos.TabIndex = 7;
@@ -321,12 +321,11 @@
             // textBoxFocus
             // 
             this.textBoxFocus.Enabled = false;
-            this.textBoxFocus.Location = new System.Drawing.Point(362, 569);
+            this.textBoxFocus.Location = new System.Drawing.Point(16, 405);
             this.textBoxFocus.Multiline = true;
             this.textBoxFocus.Name = "textBoxFocus";
-            this.textBoxFocus.Size = new System.Drawing.Size(302, 64);
+            this.textBoxFocus.Size = new System.Drawing.Size(309, 32);
             this.textBoxFocus.TabIndex = 19;
-            this.textBoxFocus.Visible = false;
             // 
             // labelArm
             // 
@@ -421,6 +420,7 @@
             // 
             // panelGunOrientation
             // 
+            this.panelGunOrientation.Controls.Add(this.textBoxFocus);
             this.panelGunOrientation.Location = new System.Drawing.Point(681, 73);
             this.panelGunOrientation.Name = "panelGunOrientation";
             this.panelGunOrientation.Size = new System.Drawing.Size(450, 450);
@@ -645,11 +645,22 @@
             this.labelServoRPos.TabIndex = 47;
             this.labelServoRPos.Text = "0";
             // 
+            // pictureBoxMech
+            // 
+            this.pictureBoxMech.Location = new System.Drawing.Point(24, 83);
+            this.pictureBoxMech.Name = "pictureBoxMech";
+            this.pictureBoxMech.Size = new System.Drawing.Size(640, 480);
+            this.pictureBoxMech.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBoxMech.TabIndex = 51;
+            this.pictureBoxMech.TabStop = false;
+            this.pictureBoxMech.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pictureBoxMech_MouseDown);
+            this.pictureBoxMech.MouseMove += new System.Windows.Forms.MouseEventHandler(this.pictureBoxMech_MouseMove);
+            // 
             // FormPilot
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1208, 732);
+            this.ClientSize = new System.Drawing.Size(1028, 609);
             this.Controls.Add(this.trackBarElSpeed);
             this.Controls.Add(this.label12);
             this.Controls.Add(this.trackBarElPos);
@@ -696,11 +707,12 @@
             this.Controls.Add(this.checkBoxMouseControl);
             this.Controls.Add(this.buttonFire);
             this.Controls.Add(this.toolStrip1);
-            this.Controls.Add(this.mechCamera);
-            this.Controls.Add(this.textBoxFocus);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.textBoxDebug);
             this.Controls.Add(this.labelDebugLog);
+            this.Controls.Add(this.pictureBoxMech);
+            this.Controls.Add(this.mechCamera);
+            this.KeyPreview = true;
             this.Name = "FormPilot";
             this.Text = "RA";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormTrendnet_FormClosing);
@@ -714,6 +726,9 @@
             ((System.ComponentModel.ISupportInitialize)(this.trackBarAzPos)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarElSpeed)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarAzSpeed)).EndInit();
+            this.panelGunOrientation.ResumeLayout(false);
+            this.panelGunOrientation.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxMech)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -776,6 +791,7 @@
         private System.Windows.Forms.Label labelServoLPos;
         private System.Windows.Forms.Label label15;
         private System.Windows.Forms.Label labelServoRPos;
+        private System.Windows.Forms.PictureBox pictureBoxMech;
     }
 }
 

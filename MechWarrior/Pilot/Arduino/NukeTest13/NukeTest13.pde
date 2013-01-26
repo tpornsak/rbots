@@ -44,8 +44,8 @@ int gunPin = 40;
 
 Servo ServoRIR;
 Servo ServoLIR;
-int   servoRPos =0;
-int   servoLPos = 0;
+int   servoRPos =100;
+int   servoLPos = 10;
 int   servoRPin = 7;
 int   servoLPin = 6;
 int   dirServo = 1;
@@ -132,24 +132,24 @@ void loop(){
   ServoRIR.write(servoRPos);
   ServoLIR.write(servoLPos);
   
-  if( dirServo )
-  {
-    servoRPos+=5;
-    servoLPos+=5;
-  }
-  else
-  {
-    servoRPos-=5;
-    servoLPos-=5;
-  }
-  
-  if(servoRPos >= 110) {
-    dirServo = 0;
-  }
-  
-  if(servoLPos <= 10) {
-    dirServo = 1;
-  }
+//    if( dirServo )
+//    {
+//      servoRPos+=5;
+//      servoLPos+=5;
+//    }
+//    else
+//    {
+//      servoRPos-=5;
+//      servoLPos-=5;
+//    }
+//    
+//    if(servoRPos >= 110) {
+//      dirServo = 0;
+//    }
+//    
+//    if(servoLPos <= 10) {
+//      dirServo = 1;
+//    }
   
   // update IK if needed
   if(bioloid.interpolating == 0){

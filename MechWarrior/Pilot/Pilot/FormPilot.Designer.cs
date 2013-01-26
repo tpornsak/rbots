@@ -187,7 +187,7 @@
             // serialPortMech
             // 
             this.serialPortMech.BaudRate = 38400;
-            this.serialPortMech.PortName = "COM20";
+            this.serialPortMech.PortName = "COM18";
             this.serialPortMech.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(this.serialPortMech_DataReceived);
             // 
             // trackBarAzPos

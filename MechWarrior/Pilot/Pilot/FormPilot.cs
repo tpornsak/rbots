@@ -8,7 +8,7 @@ using System.Text;
 using System.Windows.Forms;
 
 using AForge.Video;
-using AForge.Video.DirectShow;
+using AForge.Video;
 using System.Threading;
 using AForge.Imaging;
 using AForge.Imaging.Filters;
@@ -118,7 +118,7 @@ namespace CameraTrendnetAForge
         //string cameraURL = "http://192.168.2.175/img/video.mjpeg";
         //string cameraURL = "http://192.168.0.103:8080/live.flv";
         //string cameraURL = "http://192.168.1.16:8080/videofeed";
-        string cameraURL = "http://192.168.0.56:8080/videofeed";
+        string cameraURL = "http://192.168.0.53:8080/videofeed";
         //string cameraURL = "http://192.168.0.102:8080/ipcam";
         Thread t;
 

@@ -92,3 +92,24 @@ C:\code\Pilot _Rotate\Pilot\obj\x86\Debug\GenerateResource.read.1.tlog
 C:\code\Pilot _Rotate\Pilot\obj\x86\Debug\GenerateResource.write.1.tlog
 C:\code\Pilot _Rotate\Pilot\obj\x86\Debug\CameraTrendnetAForge.exe
 C:\code\Pilot _Rotate\Pilot\obj\x86\Debug\CameraTrendnetAForge.pdb
+C:\code\PilotRA2013\Pilot\bin\Debug\CameraTrendnetAForge.exe
+C:\code\PilotRA2013\Pilot\bin\Debug\CameraTrendnetAForge.pdb
+C:\code\PilotRA2013\Pilot\bin\Debug\AForge.Controls.dll
+C:\code\PilotRA2013\Pilot\bin\Debug\AForge.dll
+C:\code\PilotRA2013\Pilot\bin\Debug\AForge.Imaging.dll
+C:\code\PilotRA2013\Pilot\bin\Debug\AForge.Video.DirectShow.dll
+C:\code\PilotRA2013\Pilot\bin\Debug\AForge.Video.dll
+C:\code\PilotRA2013\Pilot\bin\Debug\AForge.Math.dll
+C:\code\PilotRA2013\Pilot\bin\Debug\AForge.xml
+C:\code\PilotRA2013\Pilot\bin\Debug\AForge.Controls.xml
+C:\code\PilotRA2013\Pilot\bin\Debug\AForge.Imaging.xml
+C:\code\PilotRA2013\Pilot\bin\Debug\AForge.Video.xml
+C:\code\PilotRA2013\Pilot\bin\Debug\AForge.Video.DirectShow.xml
+C:\code\PilotRA2013\Pilot\bin\Debug\AForge.Math.xml
+C:\code\PilotRA2013\Pilot\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\code\PilotRA2013\Pilot\obj\x86\Debug\CameraTrendnetAForge.FormPilot.resources
+C:\code\PilotRA2013\Pilot\obj\x86\Debug\CameraTrendnetAForge.Properties.Resources.resources
+C:\code\PilotRA2013\Pilot\obj\x86\Debug\GenerateResource.read.1.tlog
+C:\code\PilotRA2013\Pilot\obj\x86\Debug\GenerateResource.write.1.tlog
+C:\code\PilotRA2013\Pilot\obj\x86\Debug\CameraTrendnetAForge.exe
+C:\code\PilotRA2013\Pilot\obj\x86\Debug\CameraTrendnetAForge.pdb

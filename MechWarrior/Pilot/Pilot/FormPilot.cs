@@ -6,13 +6,16 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
+using Microsoft.Xna.Framework.Content;
+using Microsoft.Xna.Framework.GamerServices;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Media;
+using Input = Microsoft.Xna.Framework.Input; // to provide shorthand to clear up ambiguities
 
-using AForge.Video;
-using AForge.Video;
 using System.Threading;
-using AForge.Imaging;
-using AForge.Imaging.Filters;
-using AForge.Imaging.Textures;
 using System.IO;
 
 
@@ -41,7 +44,53 @@ namespace CameraTrendnetAForge
         int[] bufferLeftIRPos = new int[bufferSize];
         int currentAz = 0;
 
+        // variabes for the xbox controller
+        float prevXpos = 0;
+        float thumstickRight;
+        float prevYpos = 0;
+        float thumstickUp;
+        int x1Position;
+        int y1Position;
+        int x2position;
+        int y2position;
+        int leftTriggerPosition;
+        int rightTriggerPosition;
+        bool buttonUp;
+        bool buttonDown;
+        bool buttonLeft;
+        bool buttonRight;
+        bool buttonA;
+        bool buttonB;
+        bool buttonX;
+        bool buttonY;
+        bool buttonLeftShoulder;
+        bool buttonRightShoulder;
+        bool buttonStart;
+        bool buttonBack;
+        bool buttonLeftStick;
+        bool buttonRightStick;
 
+
+
+        //To keep track of the current and previous state of the gamepad
+        /// <summary>
+        /// The current state of the controller
+        /// </summary>
+        GamePadState gamePadState;
+        /// <summary>
+        /// The previous state of the controller
+        /// </summary>
+        GamePadState previousState;
+
+        /// <summary>
+        /// Keeps track of the current controller
+        /// </summary>
+        PlayerIndex playerIndex = PlayerIndex.One;
+
+        /// <summary>
+        /// Counter for limiting the time for which the vibration motors are on.
+        /// </summary>
+        int vibrationCountdown = 0;
 
         // variables to store for label for serial rx, needed
         // since we cannot edit labels inside rx interrupt
@@ -59,16 +108,6 @@ namespace CameraTrendnetAForge
         double bearing   = 0.0;
 
         byte returnCheckSum = 0x00;
-
-        // create filter
-        RotateBilinear filterRotate = new RotateBilinear(90.0,true);
-        // create filter
-        CannyEdgeDetector filterCanny = new CannyEdgeDetector();
-        // create filters sequence
-        FiltersSequence filter = new AForge.Imaging.Filters.FiltersSequence();
-
-        Grayscale filterGS = new Grayscale(0.2125, 0.7154, 0.0721);
-        Mirror filterMirror = new Mirror(false, true);
 
         // hitpoints
         byte hitPoints = 20;
@@ -118,23 +157,18 @@ namespace CameraTrendnetAForge
         //string cameraURL = "http://192.168.2.175/img/video.mjpeg";
         //string cameraURL = "http://192.168.0.103:8080/live.flv";
         //string cameraURL = "http://192.168.1.16:8080/videofeed";
-        string cameraURL = "http://192.168.0.53:8080/videofeed";
+        //string cameraURL = "http://192.168.0.53:8080/videofeed";
         //string cameraURL = "http://192.168.0.102:8080/ipcam";
         Thread t;
 
         public FormPilot()
         {
             
-            InitializeComponent();
-            filter.Add(new RotateBicubic(90.0, true));
-            //filter.Add(new Grayscale(0.299, 0.587, 0.114));
-            //filter.Add(new Grayscale(0.2125, 0.7154, 0.0721)); 
-            //filter.Add(new CannyEdgeDetector());
-            
-            InitializeCamera();
+            InitializeComponent();           
+            //InitializeCamera();
             InitializeSerialPort();
-            scaleMouseHeight = (double)(trackBarElPos.Maximum - trackBarElPos.Minimum) / pictureBoxMech.Height;
-            scaleMouseWidth = (double)(trackBarAzPos.Maximum - trackBarAzPos.Minimum) / pictureBoxMech.Width;
+            scaleMouseHeight = (double)(trackBarElPos.Maximum - trackBarElPos.Minimum) / webVideo.Height;
+            scaleMouseWidth = (double)(trackBarAzPos.Maximum - trackBarAzPos.Minimum) / webVideo.Width;
 
             for (int i = 0; i < bufferRightIR.Length; i++)
             {
@@ -150,67 +184,238 @@ namespace CameraTrendnetAForge
            
         }
 
+        // Re-maps a number from one range to another. That is, a value of fromLow would get mapped to toLow, 
+        // a value of fromHigh to toHigh, values in-between to values in-between, etc.
+        // Does not constrain values to within the range, because out-of-range values are sometimes intended and useful. 
+        // The constrain() function may be used either before or after this function, if limits to the ranges are desired.
+        // Note that the "lower bounds" of either range may be larger or smaller than the "upper bounds" so the 
+        // map() function may be used to reverse a range of numbers, for example
+        // y = map(x, 1, 50, 50, 1);
+        // The function also handles negative numbers well, so that this example
+        // y = map(x, 1, 50, 50, -100);
+        // is also valid and works well.
+        //The map() function uses integer math so will not generate fractions, when the math might indicate
+        // that it should do so. Fractional remainders are truncated, and are not rounded or averaged.
+        //
+        //Parameters
+        // value: the number to map
+        // fromLow: the lower bound of the value's current range
+        // fromHigh: the upper bound of the value's current range
+        // toLow: the lower bound of the value's target range
+        // toHigh: the upper bound of the value's target range
+        //
+        // Returns
+        // The mapped value.
+        private int map(int x, int in_min, int in_max, int out_min, int out_max)
+        {
+            return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+        }
+
+        private float map(float x, float in_min, float in_max, float out_min, float out_max)
+        {
+            return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+        }
+
+
+        private void sendMechCommands()
+        {
+            try
+            {
+                //if (zoomSpeed)
+                //{
+                //    trackBarAzSpeed.Value = 50;
+                //}
+                //else
+                //{
+                //    trackBarAzSpeed.Value = 150;
+                //}
+
+                //short goalElPos = (short)map((int)this.y2position.Value, 0, 100, 750, 545); //( trackBarElPos.Maximum - trackBarElPos.Value + trackBarElPos.Minimum ) ;
+                short goalElSpeed = (short)150;  //trackBarElSpeed.Value;
+                //short goalAzPos = (short)512;  //(trackBarAzPos.Maximum - trackBarAzPos.Value + trackBarAzPos.Minimum);
+                // convert the joystick 0,100 values horz. into the full range of the azimuth Ax-12 servo
+
+                //joystick gains
+                float kx = 5.0f;
+                float ky = 5.0f;
+
+                // joystick control code.
+                float currX = prevXpos + kx * (float)Math.Pow((double)thumstickRight, 3.0); // x^3
+                float currY = prevYpos + ky * (float)Math.Pow((double)thumstickUp, 3.0);  // x^3
+                prevXpos = currX;
+                prevYpos = currY;
+                short goalAzPos = (short)map(currX, -100.0f, 100.0f, 1023.0f, 0.0f);
+                //short goalAzPos = (short)map((int)this.x2position.Value, 0, 100, 1023, 0);
+                short goalElPos = (short)map(currY, -100.0f, 100.0f, 750.0f, 545.0f);
+
+                short goalAzSpeed = (short)150; //trackBarAzSpeed.Value;
+                byte goalElPosLow = (byte)(goalElPos & 0xff);
+                byte goalElPosHigh = (byte)(goalElPos >> 8);
+                byte goalAzPosLow = (byte)(goalAzPos & 0xff);
+                byte goalAzPosHigh = (byte)(goalAzPos >> 8);
+
+                //currentAz = trackBarAzPos.Value; 
+                byte goalElSpeedLow = (byte)(goalElSpeed & 0xff);
+                byte goalElSpeedHigh = (byte)(goalElSpeed >> 8);
+                byte goalAzSpeedLow = (byte)(goalAzSpeed & 0xff);
+                byte goalAzSpeedHigh = (byte)(goalAzSpeed >> 8);
+
+
+                byte byteHeader = 0xFF;
+                byte byteLVert = 0x80;
+                byte byteLHorz = 0x80;
+                byte byteRVert = 0x80;
+                byte byteRHorz = 0x80;
+                byte byteButton = 0x00;
+                byte byteExt = 0x00;
+
+                //if (latchButton == 0)
+                //{
+                //    byteButton = 0x00;
+                //}
+                //else if (latchButton == 1)
+                //{
+
+                //    byteButton = 0x00;
+                //    latchButton = 2;
+                //}
+                //else if (latchButton == 2)
+                //{
+                //    byteButton = 0x80;
+                //    latchButton = 0;
+                //}
+
+                byte cmdLeg = 0x07;
+                byte gunFire = 0x00;
+                switch (cmdLeg)
+                {
+                    // Forward Case
+                    case 0x05:
+                        byteLVert = 0xFD;  //  253 decimal - see commander Protocol
+                        byteLHorz = 0x80;  //  80 decimal  - neutral position
+                        break;
+                    // Reverse Case
+                    case 0x06:
+                        byteLVert = 0x03;  //  3 decimal   - see commander Protocol
+                        byteLHorz = 0x80;  //  80 decimal  - neutral position
+                        break;
+                    // Turn Right Case
+                    case 0x01:
+                        byteLVert = 0x80;  //  3 decimal   - see commander Protocol
+                        byteLHorz = 0xFD;  //  80 decimal  - neutral position
+                        break;
+                    // Turn Left Case
+                    case 0x03:
+                        byteLVert = 0x80;  //  3 decimal   - see commander Protocol
+                        byteLHorz = 0x03;  //  80 decimal  - neutral position
+                        break;
+                    // Stop Case
+                    case 0x07:
+                        byteLVert = 0x80;  //  3 decimal   - see commander Protocol
+                        byteLHorz = 0x80;  //  80 decimal  - neutral position
+                        break;
+                    // Strafe Left
+                    case 0x04:
+                        byteLVert = 0x80;  //  3 decimal   - see commander Protocol
+                        byteLHorz = 0x03;  //  80 decimal  - neutral position
+                        byteButton = 0x80; // to strafe left top butoon
+                        //latchButton = 1;
+                        break;
+                    // Strafe right
+                    case 0x02:
+                        byteLVert = 0x80;  //  3 decimal   - see commander Protocol
+                        byteLHorz = 0xFD;  //  80 decimal  - neutral position
+                        byteButton = 0x80; // to strafe left top butoon
+                        //qlatchButton = 1;
+                        break;
+
+                }
+
+                byteLVert = (byte)map((int)this.y1Position, 0, 100, 0, 253);
+                byteLHorz = (byte)map((int)this.x1Position, 0, 100, 0, 253);
+                if (this.buttonLeftShoulder)
+                {
+                    byteButton = 0x80;
+                }
+
+                if (this.rightTriggerPosition > 0.0)
+                {
+                    gunFire = 0x01;
+                }
+                // Calculate the checksum + display it
+                //byte byteChecksum = (byte)(0xFF - (byte)(byteRVert + byteRHorz + byteLVert + byteLHorz + byteButton + byteExt) % 256);
+                byte byteChecksum = (byte)~(byteRVert + byteRHorz + byteLVert + byteLHorz + byteButton + byteExt + goalAzPosLow + goalAzPosHigh + goalElPosLow + goalElPosHigh + gunFire + goalAzSpeedLow + goalAzSpeedHigh + goalElSpeedLow + goalElSpeedHigh);
+
+                //textBoxFocus.AppendText(byteChecksum.ToString() + Environment.NewLine);
+
+                //goalAzPosLow = 0; goalAzPosHigh = 0; goalElPosLow = 0; goalElPosHigh = 0;
+                // make sure these bytes are are not 0xFF, if so change to 0xFE
+                // this is because our start of message uses 0xFF
+                if (goalAzPosLow == 0xFF) { goalAzPosLow = 0xFE; }
+                if (goalElPosLow == 0xFF) { goalElPosLow = 0xFE; }
+                byte[] cmdBytes = new byte[17] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, goalAzPosLow, goalAzPosHigh, goalElPosLow, goalElPosHigh, gunFire, goalAzSpeedLow, goalAzSpeedHigh, goalElSpeedLow, goalElSpeedHigh, byteChecksum };
+                //byte[] cmdBytes = new byte[8] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, byteChecksum };
+                //byte[] cmdBytes = new byte[9] { byteHeader, byteRVert, byteRHorz, byteLVert, byteLHorz, byteButton, byteExt, goalAzPosLow, byteChecksum };
+                int cmdLength = 17;
+                if (serialPortMech.IsOpen)
+                {
+                    serialPortMech.Write(cmdBytes, 0, cmdLength);
+                    //if (cmdLeg == 0x02 || cmdLeg == 0x04)
+                    //{
+                    //    byteButton = 0x00;
+                    //    latchButton = 2;
+                    //    serialPortMech.Write(cmdBytes, 0, cmdLength);
+                    //}
+                }
+
+
+                //gunFire = 0x00;
+                //panelGunOrientation.Refresh();
+
+            }
+            catch (Exception ex)
+            {
+                textBoxDebug.AppendText(ex.Message.ToString() + Environment.NewLine);
+            }
+
+        }
+
+
         private void InitializeSerialPort()
         {
             try
             {
-                serialPortMech.Open();
-                portOpen = true;
-                t = new Thread(new ThreadStart(MonitorPort));
-                //serialPortMech.WriteTimeout = 4000;
-                //serialPortMech.Ti
+
+                //    serialPortMech.Open();
+                // query the os for all the com ports and populate the combo box
+                string [] ports = System.IO.Ports.SerialPort.GetPortNames();
+                comboBoxSerial.Items.AddRange(ports);
+                
+                // Here is a hard-coded serial port, if it exists go ahead
+                // and select it and open serial port, feature so user does not have 
+                // to select it every time
+                var comCheckExist = "COM99";
+                //var results = Array.FindAll(ports, s => s.Equals(comCheckExist));
+                int idx = comboBoxSerial.FindString(comCheckExist);
+
+                // if we have found our default serial port, go ahead and open it
+                if (idx > 0 )
+                {
+                    serialPortMech.PortName = comCheckExist;
+                    serialPortMech.Open();
+                    comboBoxSerial.SelectedIndex = idx;
+                }
             }
             catch (Exception ex)
             {
                 textBoxDebug.AppendText(ex.Message.ToString() + Environment.NewLine);
-            }
+           }
         }
         private void InitializeCamera()
         {
-            try
-            {
-                // create video source
-                MJPEGStream mjpegSource = new MJPEGStream(cameraURL);
-                textBoxDebug.AppendText("Camera URL" + System.Environment.NewLine);
-                textBoxDebug.AppendText(cameraURL + System.Environment.NewLine);
-                mjpegSource.Login = "robotacronym";
-                mjpegSource.Password = "robotacronym";
-                //mjpegSource.RequestTimeout = 5000;
 
-                //mjpegSource.SeparateConnectionGroup = true;
-                // open it
-                OpenVideo(mjpegSource);
-            }
-            catch (Exception ex)
-            {
-                textBoxDebug.AppendText(ex.Message.ToString() + Environment.NewLine);
-            }
         }
 
-        // Open video source
-        private void OpenVideo(IVideoSource source)
-        {
-            // set busy cursor
-            this.Cursor = Cursors.WaitCursor;
-
-            // stop current video source
-            mechCamera.SignalToStop();
-            mechCamera.WaitForStop();
-
-            // start new video source
-            mechCamera.VideoSource = source;
-            mechCamera.Start();
-
-            // reset statistics
-            statIndex = statReady = 0;
-
-            // start timer
-            timer.Start();
-
-         
-
-            this.Cursor = Cursors.Default;
-        }
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -222,35 +427,29 @@ namespace CameraTrendnetAForge
            // textBox1.Text = serialData;
         }
 
-        private void MonitorPort()
-        {
-            try
-            {
-                //All this thread does is write the serial data to the UI.
-                //This simple example is not written to prevent data loss!
-                while (portOpen)
-                {
-                    this.Invoke(new UIUpdater(UIUpdate));
-                    Thread.Sleep(100);
-                }
-            }
-            finally
-            {
-                //Signal that the thread is terminating
-                are.Set();
-            }
-        }
+        //private void MonitorPort()
+        //{
+        //    try
+        //    {
+        //        //All this thread does is write the serial data to the UI.
+        //        //This simple example is not written to prevent data loss!
+        //        while (portOpen)
+        //        {
+        //            this.Invoke(new UIUpdater(UIUpdate));
+        //            Thread.Sleep(100);
+        //        }
+        //    }
+        //    finally
+        //    {
+        //        //Signal that the thread is terminating
+        //        are.Set();
+        //    }
+        //}
 
         private void FormTrendnet_FormClosing(object sender, FormClosingEventArgs e)
         {
             try
             {
-                if (mechCamera.VideoSource != null)
-                {
-                    mechCamera.SignalToStop();
-                    //mechCamera.WaitForStop();
-                    //mechCamera.Stop();
-                }
                 if (serialPortMech.IsOpen)
                 {
                     //serialPortMech.Close();
@@ -258,7 +457,7 @@ namespace CameraTrendnetAForge
                     portOpen = false;
 
                     //Wait for MonitorPort() to signal that it's done
-                    are.WaitOne();
+                    //are.WaitOne();
 
                     serialPortMech.Close();
                 }
@@ -269,189 +468,10 @@ namespace CameraTrendnetAForge
             }
         }
 
-
-        // InvokeRequired required compares the thread ID of the
-        private void SetPicture(ref Bitmap image)
-        {
-            // calling thread to the thread ID of the creating thread.
-            // If these threads are different, it returns true.
-            if (this.mechCamera.InvokeRequired)
-            {
-                SetPictureCallback d = new SetPictureCallback(SetPicture);
-                this.Invoke(d, new object[] { image });
-            }
-            else
-            {
-                try
-                {
-
-                    DateTime now = DateTime.Now;
-                    Bitmap img2 = (Bitmap)filter.Apply(image);
-                    Graphics g = Graphics.FromImage(img2);
-                    //filterCanny.ApplyInPlace(image);
-
-                    // draw cross-hairs
-                    Pen pR = new Pen(Color.Red);
-
-                    // draw center point
-                    Pen pG = new Pen(Color.Green);
-
-
-                    if (!armed)
-                    {
-                        Font armFont = new Font("arial", 16.0f);
-                        Color clr = Color.Red;
-                        SolidBrush br = new SolidBrush(clr);
-
-
-                        g.DrawString("NOT ARMED", armFont, br, 10.0f / 4, 240.0f / 4);
-                    }
-
-                    g.DrawEllipse(pG, 88.0f - 3.0f, 72.0f - 3.0f, 20.0f, 20.0f);
-                    //g.DrawLine(pR, 137.0f, 120.0f, 173.0f, 120.0f);
-                    //g.DrawLine(pR, 150.0f, 107.0f, 150.0f, 133.0f);
-                    g.DrawRectangle(pR, 366.0f / 4, 257.0f / 4, 20.0f / 2, 20.0f / 2);
-                    //filterCanny.ApplyInPlace(img);
-                    //pictureBoxMech.Image = img2;
-                    //mechCamera.BackgroundImage = img;
-                    // mechCamera.
-
-                    pR.Dispose();
-                    pG.Dispose();
-
-                    g.Dispose();
-                }
-                catch (Exception ex)
-                {
-                   textBoxDebug.AppendText(ex.Message.ToString() + System.Environment.NewLine);
-                }
-            }
-        }
-
-        private void mechCamera_NewFrame(object sender, ref Bitmap image)
-        {
-            try
-            {
-                // DateTime now = DateTime.Now;
-                // add filters to the sequence
-                //SetPicture(ref image);
-                //filter.Add(new RotateBicubic(90.0, true));
-                //filter.Add(new CannyEdgeDetector());
-               // Bitmap img2 = (Bitmap)image.Clone();
-                // apply the filter sequence
-                Bitmap img2 = (Bitmap)filter.Apply(image);
-                //Bitmap grayImage = new Bitmap( filterGS.Apply(image));
-                //Bitmap newImage = filterRotate.Apply(image);
-                //filterCanny.GaussianSize = 3; 
-                //filterCanny.ApplyInPlace(image);
-                //filterMirror.ApplyInPlace(image);
-                //Bitmap img = (Bitmap)image.Clone();
-                //Bitmap img = (Bitmap) image.Clone();
-                //img = (Bitmap) filterRotate.Apply(img);
-                //img = (Bitmap) filterGS.Apply(img);
-                //Bitmap img2 = (Bitmap)img.Clone();
-                //img2 = (Bitmap) filterGS.Apply(img);
-                //filterCanny.ApplyInPlace(img);
-                //do processing here
-                //pictureBox1.Image = img;
-                // Derive BitMap object using Image instance, so that you can avoid the issue
-                //"a graphics object cannot be created from an image that has an indexed pixel format"
-                Bitmap img = new Bitmap(new Bitmap(img2));
-
-                Graphics g = Graphics.FromImage(img);
-                //filterCanny.ApplyInPlace(image);
-
-                // draw cross-hairs
-                Pen pR = new Pen(Color.Red);
-                // draw center point
-               // Pen pG = new Pen(Color.Green);
-
-
-                if (!armed)
-                {
-                    Font armFont = new Font("arial", 16.0f);
-                    Color clr = Color.Red;
-                    SolidBrush br = new SolidBrush(clr);
-
-
-                    g.DrawString("NOT ARMED", armFont, br, 10.0f / 4, 240.0f / 4);
-                }
-
-                //g.DrawLine(pR, 137.0f, 120.0f, 173.0f, 120.0f);
-                //g.DrawLine(pR, 150.0f, 107.0f, 150.0f, 133.0f);
-                //g.DrawRectangle(pR, 366.0f / 4, 257.0f / 4, 20.0f / 2, 20.0f / 2);
-                g.DrawRectangle(pR, (366.0f / 4.0f)-10.0f, (252.0f / 4.0f) + 10.0f, 20.0f / 2, 20.0f / 2);   //176x144
-               //g.DrawRectangle(pR, (366.0f / 4.0f) - 20.0f, (252.0f / 4.0f) - 10.0f, 20.0f / 2, 20.0f / 2);
-                //g.DrawRectangle(pR, (366.0f / 4.0f) * 1.8f -20.0f, (252.0f / 4.0f) * 1.8f + 15.0f, 20.0f / 2, 20.0f / 2);   // 320x240
-                
-                //g.DrawEllipse(pG, 88.0f - 3.0f, 72.0f - 3.0f, 6.0f, 6.0f);
-                //filterCanny.ApplyInPlace(img);
-                pictureBoxMech.Image = img;
-                //mechCamera.BackgroundImage = img;
-                // mechCamera.
-
-                pR.Dispose();
-                //pG.Dispose();
-                g.Dispose();
-
-                //img2.Dispose();
-                //img.Dispose();
-                //grayImage.Dispose();
-                //updateData();
-                
-                //Calling the UI thread using the Dispatcher to update the 'Image' WPF control         
-                
-                //  .Dispatcher.BeginInvoke(new ThreadStart(delegate
-                //{
-                //    pictureBoxMech.Image = img2; /*frameholder is the name of the 'Image' WPF control*/
-                //}));
-            }
-            catch (Exception ex)
-            {
-                int i = 1;
-               // textBoxDebug.AppendText(ex.Message.ToString() + System.Environment.NewLine);
-            }
-        }
-
-        private void timer_Tick(object sender, EventArgs e)
-        {
-            //webBrowserCam.Refresh();
-
-            IVideoSource videoSource = mechCamera.VideoSource;
-
-            if (videoSource != null)
-            {
-                // get number of frames for the last second
-                statCount[statIndex] = videoSource.FramesReceived;
-
-                // increment indexes
-                if (++statIndex >= statLength)
-                    statIndex = 0;
-                if (statReady < statLength)
-                    statReady++;
-
-                float fps = 0;
-
-                // calculate average value
-                for (int i = 0; i < statReady; i++)
-                {
-                    fps += statCount[i];
-                }
-                fps /= statReady;
-
-                statCount[statIndex] = 0;
-
-                toolStripLabelFPS.Text = fps.ToString("F2") + " fps";
-            }
-
-            //textBoxFocus.AppendText(this.ActiveControl.ToString() + Environment.NewLine);
-            updateData();
-        }
-
         private void trackBar1_ValueChanged(object sender, EventArgs e)
         {
             textBoxElPos.Text = trackBarElPos.Value.ToString();
-            updateTurret();
+            //updateTurret();
             //pictureBoxMech.Focus();
             
         }
@@ -627,22 +647,22 @@ namespace CameraTrendnetAForge
         {
             textBoxElSpeed.Text = trackBarElSpeed.Value.ToString();
             //mechCamera.Focus();
-            pictureBoxMech.Focus();
+            //pictureBoxMech.Focus();
         }
 
         private void trackBarAzPos_ValueChanged(object sender, EventArgs e)
         {
             textBoxAzPos.Text = trackBarAzPos.Value.ToString();
-            updateTurret();
+            //updateTurret();
             //mechCamera.Focus();
-            pictureBoxMech.Focus();
+           // pictureBoxMech.Focus();
         }
 
         private void trackBarAzSpeed_ValueChanged(object sender, EventArgs e)
         {
             textBoxAzSpeed.Text = trackBarAzSpeed.Value.ToString();
             //mechCamera.Focus();
-            pictureBoxMech.Focus();
+            //pictureBoxMech.Focus();
         }
 
         private void buttonFire_Click(object sender, EventArgs e)
@@ -650,15 +670,15 @@ namespace CameraTrendnetAForge
             if (armed)
             {
                 gunFire = 0x01;
-                updateTurret();
+                //updateTurret();
             }
             //mechCamera.Focus();
-            pictureBoxMech.Focus();
+           // pictureBoxMech.Focus();
         }
 
         private void checkBoxMouseControl_CheckedChanged(object sender, EventArgs e)
         {
-            pictureBoxMech.Focus();
+            //pictureBoxMech.Focus();
             //pictureBoxMech.Focus();
         }
 
@@ -682,60 +702,53 @@ namespace CameraTrendnetAForge
             textBoxDebug.AppendText("pictureBoxMech_Click_1" + System.Environment.NewLine);
             
         }
-
-        private void pictureBoxMech_MouseMove(object sender, MouseEventArgs mouseCurrent)
+        private void UpdateControllerState()
         {
-            // if mouse control box is checked then move turret based on mouse movements
-            if (checkBoxMouseControl.Checked)
+            //Get the new gamepad state and save the old state.
+            this.previousState = this.gamePadState;
+            this.gamePadState = GamePad.GetState(this.playerIndex);
+            //If the controller is not connected, let the user know
+            //this.lblNotConnected.Visible = !this.gamePadState.IsConnected;
+            //I personally prefer to only update the buttons if their state has been changed. 
+            if (!this.gamePadState.Buttons.Equals(this.previousState.Buttons))
             {
-                // if mouse is moved, move the turret, ignore first move to get position start
-                if (!mouseMoveInitFlag)
-                {
-                    mouseMoveInitFlag = true;
-                    mousePrevX = mouseCurrent.X;
-                    mousePrevY = mouseCurrent.Y;
-                }
-                else
-                {
-                    // for now just get sign ofmovement
-                    
-                    //int dirX = Math.Sign(mouseCurrent.X - mousePrevX);
-                    //int dirY = Math.Sign(mouseCurrent.Y - mousePrevY);
-                    //int newElPos = trackBarElPos.Value + dirY;
-                    //int newAzPos = trackBarAzPos.Value + dirX;
-                    //textBoxDebug.AppendText(mouseCurrent.X.ToString() + "," + mouseCurrent.Y.ToString() + "," + mousePrevX.ToString() + "," +
-                    //mousePrevY.ToString() + "," + dirX.ToString() + "," + dirY.ToString() + "," + newElPos.ToString() + "," + newAzPos.ToString() + System.Environment.NewLine);
-                    int newElPos = (int)((double)mouseCurrent.Y * scaleMouseHeight + (double)trackBarElPos.Minimum);
-                    int newAzPos = (int)((double)mouseCurrent.X * scaleMouseWidth + (double)trackBarAzPos.Minimum);
-
-                    //cap values
-                    if (newElPos > trackBarElPos.Maximum)
-                        newElPos = trackBarElPos.Maximum;
-                    if (newAzPos > trackBarAzPos.Maximum)
-                        newAzPos = trackBarAzPos.Maximum;
-                    if (newElPos < trackBarElPos.Minimum)
-                        newElPos = trackBarElPos.Minimum;
-                    if (newAzPos < trackBarAzPos.Minimum)
-                        newAzPos = trackBarAzPos.Minimum;
-
-                    trackBarElPos.Value = newElPos;
-                    trackBarAzPos.Value = newAzPos;
-                    //mousePrevX = mouseCurrent.X;
-                    //mousePrevY = mouseCurrent.Y;        
-
-
-
-                    updateTurret();
-
-                }
-
+                this.buttonA = (this.gamePadState.Buttons.A == Input.ButtonState.Pressed);
+                this.buttonB = (this.gamePadState.Buttons.B == Input.ButtonState.Pressed);
+                this.buttonX = (this.gamePadState.Buttons.X == Input.ButtonState.Pressed);
+                this.buttonY = (this.gamePadState.Buttons.Y == Input.ButtonState.Pressed);
+                this.buttonLeftShoulder = (this.gamePadState.Buttons.LeftShoulder == Input.ButtonState.Pressed);
+                this.buttonRightShoulder = (this.gamePadState.Buttons.RightShoulder == Input.ButtonState.Pressed);
+                this.buttonStart = (this.gamePadState.Buttons.Start == Input.ButtonState.Pressed);
+                this.buttonBack = (this.gamePadState.Buttons.Back == Input.ButtonState.Pressed);
+                this.buttonLeftStick = (this.gamePadState.Buttons.LeftStick == Input.ButtonState.Pressed);
+                this.buttonRightStick = (this.gamePadState.Buttons.RightStick == Input.ButtonState.Pressed);
+            }
+            if (!this.gamePadState.DPad.Equals(this.previousState.DPad))
+            {
+                this.buttonUp = (this.gamePadState.DPad.Up == Input.ButtonState.Pressed);
+                this.buttonDown = (this.gamePadState.DPad.Down == Input.ButtonState.Pressed);
+                this.buttonLeft = (this.gamePadState.DPad.Left == Input.ButtonState.Pressed);
+                this.buttonRight = (this.gamePadState.DPad.Right == Input.ButtonState.Pressed);
             }
 
-        }
+            //Update the position of the thumb sticks
+            //since the thumbsticks can return a number between -1.0 and +1.0 I had to shift (add 1.0)
+            //and scale (mutiplication by 100/2, or 50) to get the numbers to be in the range of 0-100
+            //for the progress bar
+            this.x1Position = (int)((this.gamePadState.ThumbSticks.Left.X + 1.0f) * 100.0f / 2.0f);
+            this.y1Position = (int)((this.gamePadState.ThumbSticks.Left.Y + 1.0f) * 100.0f / 2.0f);
+            this.x2position = (int)((this.gamePadState.ThumbSticks.Right.X + 1.0f) * 100.0f / 2.0f);
+            this.y2position = (int)((this.gamePadState.ThumbSticks.Right.Y + 1.0f) * 100.0f / 2.0f);
+            thumstickRight = this.gamePadState.ThumbSticks.Right.X;
+            thumstickUp = this.gamePadState.ThumbSticks.Right.Y;
 
-        private void pictureBoxMech_Click_1(object sender, EventArgs e)
-        {
-            pictureBoxMech.Focus();
+            //The triggers return a value between 0.0 and 1.0.  I only needed to scale these values for
+            //the progress bar
+            this.leftTriggerPosition = (int)((this.gamePadState.Triggers.Left * 100));
+            this.rightTriggerPosition = (int)(this.gamePadState.Triggers.Right * 100);
+
+            // send data states to mech over serial
+            sendMechCommands();
 
         }
 
@@ -743,56 +756,56 @@ namespace CameraTrendnetAForge
         {
             textBoxDebug.AppendText("FormPilot_KeyDown" + System.Environment.NewLine);
 
-            if (e.KeyData == Keys.W)
+            if (e.KeyData == System.Windows.Forms.Keys.W)
             {
                 cmdLeg = 0x05;
             }
-            else if (e.KeyData == Keys.D)
+            else if (e.KeyData == System.Windows.Forms.Keys.D)
             {
                 cmdLeg = 0x01;
             }
-            else if (e.KeyData == Keys.A)
+            else if (e.KeyData == System.Windows.Forms.Keys.A)
             {
                 cmdLeg = 0x03;
             }
-            else if (e.KeyData == Keys.S)
+            else if (e.KeyData == System.Windows.Forms.Keys.S)
             {
                 cmdLeg = 0x06;
             }
-            else if (e.KeyData == Keys.E)
+            else if (e.KeyData == System.Windows.Forms.Keys.E)
             {
                 cmdLeg = 0x02;
             }
-            else if (e.KeyData == Keys.Q)
+            else if (e.KeyData == System.Windows.Forms.Keys.Q)
             {
                 cmdLeg = 0x04;
             }
-            else if (e.KeyData == Keys.X)
+            else if (e.KeyData == System.Windows.Forms.Keys.X)
             {
                 cmdLeg = 0x07;
             }
             // If ready to arm check box is checked and key P was pressed,
             // then arm the MechWarrior
-            else if (e.KeyData == Keys.P)
+            else if (e.KeyData == System.Windows.Forms.Keys.P)
             {
                 if (checkBoxArm.Checked)
                 {
                     armed = true;
                     labelArm.Text = "Armed";
-                    labelArm.ForeColor = Color.Red;
+                    labelArm.ForeColor = System.Drawing.Color.Red;
                 }
             }
             // DISARM MechWarrior if O key is pressed
-            else if (e.KeyData == Keys.O)
+            else if (e.KeyData == System.Windows.Forms.Keys.O)
             {
                 armed = false;
                 labelArm.Text = "Not Armed";
-                labelArm.ForeColor = Color.Green;
+                labelArm.ForeColor = System.Drawing.Color.Green;
                 checkBoxArm.Checked = false;
 
 
             }
-            else if (e.KeyData == Keys.Space)
+            else if (e.KeyData == System.Windows.Forms.Keys.Space)
             {
                 if (checkBoxMouseControl.Checked)
                 {
@@ -804,15 +817,15 @@ namespace CameraTrendnetAForge
 
                 }
             }
-            else if (e.KeyCode == Keys.L)
+            else if (e.KeyCode == System.Windows.Forms.Keys.L)
             {
                 timerMatchClock.Start();
             }
-            else if (e.KeyCode == Keys.Z)
+            else if (e.KeyCode == System.Windows.Forms.Keys.Z)
             {
                 zoomSpeed = !zoomSpeed;
             }
-            else if (e.KeyCode == Keys.C)
+            else if (e.KeyCode == System.Windows.Forms.Keys.C)
             {
                 centerFlag = true;
             }
@@ -820,15 +833,9 @@ namespace CameraTrendnetAForge
             {
                 cmdLeg = 0x00;
             }
-            updateTurret();
+            //updateTurret();
         }
 
-        private void pictureBoxMech_KeyDown(object sender, KeyEventArgs e)
-        {
-            
-            textBoxDebug.AppendText("pictureBoxMech_KeyDown" + System.Environment.NewLine);
-
-        }
 
         private void textBoxDebug_KeyDown(object sender, KeyEventArgs e)
         {
@@ -928,45 +935,21 @@ namespace CameraTrendnetAForge
 
         }
 
-        private void pictureBoxMech_MouseDown(object sender, MouseEventArgs e)
-        {
-
-            textBoxDebug.AppendText("X Pos: " + e.X.ToString() + ", Y Pos: " + e.Y.ToString() + System.Environment.NewLine);
-
-            if (e.Button ==  MouseButtons.Right)
-            {
-                pictureBoxMech.Focus();
-                checkBoxMouseControl.Checked = true;
-            }
-            else if (e.Button == MouseButtons.Left)
-            {
-                if (checkBoxMouseControl.Checked && armed)
-                {
-
-                    gunFire = 0x01;
-                    updateTurret();
-
-                }
-
-            }
-
-            textBoxDebug.AppendText("pictureBoxMech_MouseDown" + System.Environment.NewLine);
-        }
 
         private void checkBoxArm_CheckStateChanged(object sender, EventArgs e)
         {
             if (checkBoxArm.Checked)
             {
                 labelArm.Text = "READY TO ARM";
-                labelArm.ForeColor = Color.MediumBlue;
-                pictureBoxMech.Focus();
+                labelArm.ForeColor = System.Drawing.Color.MediumBlue;
+                //pictureBoxMech.Focus();
             }
             else
             {
                 armed = false;
                 labelArm.Text = "NOT ARMED";
-                labelArm.ForeColor = Color.Green;
-                pictureBoxMech.Focus();
+                labelArm.ForeColor = System.Drawing.Color.Green;
+               // pictureBoxMech.Focus();
 
 
             }
@@ -1014,14 +997,14 @@ namespace CameraTrendnetAForge
 
             // draw gun orientation to panel
             Graphics grfx = panelGunOrientation.CreateGraphics();
-            Pen greenPen = new Pen(Color.Green);
-            Pen bluePen = new Pen(Color.Blue);
-            Pen redPen = new Pen(Color.Red);
+            Pen greenPen = new Pen(System.Drawing.Color.Green);
+            Pen bluePen = new Pen(System.Drawing.Color.Blue);
+            Pen redPen = new Pen(System.Drawing.Color.Red);
             
             redPen.Width = 5;
             bluePen.Width = 5;
             greenPen.Width = 5;
-            Pen blackPen = new Pen(Color.Black);
+            Pen blackPen = new Pen(System.Drawing.Color.Black);
             int xp2 = center;
             int yp2 = center; // -(int)mechHalfWidth;
             const float lineLength = 90.0f;  // lenth in pixels of how long gun viz is
@@ -1591,6 +1574,39 @@ namespace CameraTrendnetAForge
             //updateData();
             panelGunOrientation.Invalidate();
            
+        }
+
+        private void comboBoxSerial_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            try
+            {
+
+                if (serialPortMech.IsOpen)
+                {
+                    // 1st close the serial port if it is open
+                    serialPortMech.Close();
+                }
+
+                // grab the currently selected com port from the combo box and open it
+                serialPortMech.PortName = (string)comboBoxSerial.SelectedItem;
+                serialPortMech.Open();
+            }
+            catch (Exception ex)
+            {
+                textBoxDebug.AppendText(ex.Message.ToString() + Environment.NewLine);
+            }
+        }
+
+        private void timerInput_Tick(object sender, EventArgs e)
+        {
+            this.UpdateControllerState();
+        }
+
+        private void FormPilot_Paint(object sender, PaintEventArgs e)
+        {
+            System.Drawing.Graphics grfx = this.CreateGraphics();
+            Pen redPen = new Pen(System.Drawing.Color.Red);
+            grfx.DrawLine(redPen, 0, 0, 448, 450);
         }
     }
 }

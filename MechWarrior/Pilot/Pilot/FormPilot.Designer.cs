@@ -31,8 +31,6 @@
             this.components = new System.ComponentModel.Container();
             this.textBoxDebug = new System.Windows.Forms.TextBox();
             this.labelDebugLog = new System.Windows.Forms.Label();
-            this.mechCamera = new AForge.Controls.VideoSourcePlayer();
-            this.timer = new System.Windows.Forms.Timer(this.components);
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.toolStripLabelFPS = new System.Windows.Forms.ToolStripLabel();
             this.trackBarElPos = new System.Windows.Forms.TrackBar();
@@ -84,20 +82,22 @@
             this.labelServoLPos = new System.Windows.Forms.Label();
             this.label15 = new System.Windows.Forms.Label();
             this.labelServoRPos = new System.Windows.Forms.Label();
-            this.pictureBoxMech = new System.Windows.Forms.PictureBox();
+            this.label14 = new System.Windows.Forms.Label();
+            this.comboBoxSerial = new System.Windows.Forms.ComboBox();
+            this.webVideo = new System.Windows.Forms.WebBrowser();
+            this.timerInput = new System.Windows.Forms.Timer(this.components);
             this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarElPos)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarAzPos)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarElSpeed)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarAzSpeed)).BeginInit();
             this.panelGunOrientation.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxMech)).BeginInit();
             this.SuspendLayout();
             // 
             // textBoxDebug
             // 
             this.textBoxDebug.Enabled = false;
-            this.textBoxDebug.Location = new System.Drawing.Point(24, 569);
+            this.textBoxDebug.Location = new System.Drawing.Point(16, 334);
             this.textBoxDebug.Multiline = true;
             this.textBoxDebug.Name = "textBoxDebug";
             this.textBoxDebug.Size = new System.Drawing.Size(303, 65);
@@ -109,39 +109,21 @@
             // 
             this.labelDebugLog.AutoSize = true;
             this.labelDebugLog.Enabled = false;
-            this.labelDebugLog.Location = new System.Drawing.Point(21, 553);
+            this.labelDebugLog.Location = new System.Drawing.Point(21, 576);
             this.labelDebugLog.Name = "labelDebugLog";
             this.labelDebugLog.Size = new System.Drawing.Size(60, 13);
             this.labelDebugLog.TabIndex = 1;
             this.labelDebugLog.Text = "Debug Log";
             this.labelDebugLog.Visible = false;
             // 
-            // mechCamera
-            // 
-            this.mechCamera.BackColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.mechCamera.Location = new System.Drawing.Point(24, 83);
-            this.mechCamera.Margin = new System.Windows.Forms.Padding(0);
-            this.mechCamera.Name = "mechCamera";
-            this.mechCamera.Size = new System.Drawing.Size(640, 480);
-            this.mechCamera.TabIndex = 2;
-            this.mechCamera.Text = "videoSourcePlayer1";
-            this.mechCamera.VideoSource = null;
-            this.mechCamera.Visible = false;
-            this.mechCamera.NewFrame += new AForge.Controls.VideoSourcePlayer.NewFrameHandler(this.mechCamera_NewFrame);
-            // 
-            // timer
-            // 
-            this.timer.Interval = 1000;
-            this.timer.Tick += new System.EventHandler(this.timer_Tick);
-            // 
             // toolStrip1
             // 
             this.toolStrip1.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripLabelFPS});
-            this.toolStrip1.Location = new System.Drawing.Point(0, 584);
+            this.toolStrip1.Location = new System.Drawing.Point(0, 719);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(1028, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(1064, 25);
             this.toolStrip1.TabIndex = 3;
             this.toolStrip1.Text = "toolStrip1";
             // 
@@ -187,7 +169,7 @@
             // serialPortMech
             // 
             this.serialPortMech.BaudRate = 38400;
-            this.serialPortMech.PortName = "COM18";
+            this.serialPortMech.PortName = "COM19";
             this.serialPortMech.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(this.serialPortMech_DataReceived);
             // 
             // trackBarAzPos
@@ -311,7 +293,7 @@
             // 
             this.label1.AutoSize = true;
             this.label1.Enabled = false;
-            this.label1.Location = new System.Drawing.Point(359, 553);
+            this.label1.Location = new System.Drawing.Point(359, 576);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(71, 13);
             this.label1.TabIndex = 18;
@@ -374,7 +356,7 @@
             this.labelHitPoints.AutoSize = true;
             this.labelHitPoints.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelHitPoints.ForeColor = System.Drawing.Color.Blue;
-            this.labelHitPoints.Location = new System.Drawing.Point(523, 595);
+            this.labelHitPoints.Location = new System.Drawing.Point(523, 618);
             this.labelHitPoints.Name = "labelHitPoints";
             this.labelHitPoints.Size = new System.Drawing.Size(36, 37);
             this.labelHitPoints.TabIndex = 24;
@@ -421,6 +403,7 @@
             // panelGunOrientation
             // 
             this.panelGunOrientation.Controls.Add(this.textBoxFocus);
+            this.panelGunOrientation.Controls.Add(this.textBoxDebug);
             this.panelGunOrientation.Location = new System.Drawing.Point(681, 73);
             this.panelGunOrientation.Name = "panelGunOrientation";
             this.panelGunOrientation.Size = new System.Drawing.Size(450, 450);
@@ -432,7 +415,7 @@
             this.labelTargetPlate.AutoSize = true;
             this.labelTargetPlate.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelTargetPlate.ForeColor = System.Drawing.Color.Blue;
-            this.labelTargetPlate.Location = new System.Drawing.Point(571, 595);
+            this.labelTargetPlate.Location = new System.Drawing.Point(571, 618);
             this.labelTargetPlate.Name = "labelTargetPlate";
             this.labelTargetPlate.Size = new System.Drawing.Size(36, 37);
             this.labelTargetPlate.TabIndex = 29;
@@ -441,7 +424,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(527, 582);
+            this.label3.Location = new System.Drawing.Point(527, 605);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(25, 13);
             this.label3.TabIndex = 30;
@@ -450,7 +433,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(575, 582);
+            this.label4.Location = new System.Drawing.Point(575, 605);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(21, 13);
             this.label4.TabIndex = 31;
@@ -468,7 +451,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(456, 582);
+            this.label6.Location = new System.Drawing.Point(456, 605);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(43, 13);
             this.label6.TabIndex = 34;
@@ -479,7 +462,7 @@
             this.labelBearingInt.AutoSize = true;
             this.labelBearingInt.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelBearingInt.ForeColor = System.Drawing.Color.Blue;
-            this.labelBearingInt.Location = new System.Drawing.Point(452, 595);
+            this.labelBearingInt.Location = new System.Drawing.Point(452, 618);
             this.labelBearingInt.Name = "labelBearingInt";
             this.labelBearingInt.Size = new System.Drawing.Size(36, 37);
             this.labelBearingInt.TabIndex = 33;
@@ -488,7 +471,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(237, 582);
+            this.label7.Location = new System.Drawing.Point(237, 605);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(39, 13);
             this.label7.TabIndex = 36;
@@ -499,7 +482,7 @@
             this.labelLeftIR.AutoSize = true;
             this.labelLeftIR.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelLeftIR.ForeColor = System.Drawing.Color.Blue;
-            this.labelLeftIR.Location = new System.Drawing.Point(233, 595);
+            this.labelLeftIR.Location = new System.Drawing.Point(233, 618);
             this.labelLeftIR.Name = "labelLeftIR";
             this.labelLeftIR.Size = new System.Drawing.Size(36, 37);
             this.labelLeftIR.TabIndex = 35;
@@ -508,7 +491,7 @@
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(370, 582);
+            this.label8.Location = new System.Drawing.Point(370, 605);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(46, 13);
             this.label8.TabIndex = 38;
@@ -519,7 +502,7 @@
             this.labelRightIR.AutoSize = true;
             this.labelRightIR.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelRightIR.ForeColor = System.Drawing.Color.Blue;
-            this.labelRightIR.Location = new System.Drawing.Point(366, 595);
+            this.labelRightIR.Location = new System.Drawing.Point(366, 618);
             this.labelRightIR.Name = "labelRightIR";
             this.labelRightIR.Size = new System.Drawing.Size(36, 37);
             this.labelRightIR.TabIndex = 37;
@@ -528,7 +511,7 @@
             // label9
             // 
             this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(370, 642);
+            this.label9.Location = new System.Drawing.Point(370, 665);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(46, 13);
             this.label9.TabIndex = 42;
@@ -539,7 +522,7 @@
             this.labelBackIR.AutoSize = true;
             this.labelBackIR.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelBackIR.ForeColor = System.Drawing.Color.Blue;
-            this.labelBackIR.Location = new System.Drawing.Point(366, 655);
+            this.labelBackIR.Location = new System.Drawing.Point(366, 678);
             this.labelBackIR.Name = "labelBackIR";
             this.labelBackIR.Size = new System.Drawing.Size(36, 37);
             this.labelBackIR.TabIndex = 41;
@@ -548,7 +531,7 @@
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(237, 642);
+            this.label11.Location = new System.Drawing.Point(237, 665);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(45, 13);
             this.label11.TabIndex = 40;
@@ -559,7 +542,7 @@
             this.labelFrontIR.AutoSize = true;
             this.labelFrontIR.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelFrontIR.ForeColor = System.Drawing.Color.Blue;
-            this.labelFrontIR.Location = new System.Drawing.Point(233, 655);
+            this.labelFrontIR.Location = new System.Drawing.Point(233, 678);
             this.labelFrontIR.Name = "labelFrontIR";
             this.labelFrontIR.Size = new System.Drawing.Size(36, 37);
             this.labelFrontIR.TabIndex = 39;
@@ -568,7 +551,7 @@
             // label10
             // 
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(150, 582);
+            this.label10.Location = new System.Drawing.Point(150, 605);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(60, 13);
             this.label10.TabIndex = 44;
@@ -579,7 +562,7 @@
             this.labelServoR.AutoSize = true;
             this.labelServoR.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelServoR.ForeColor = System.Drawing.Color.Blue;
-            this.labelServoR.Location = new System.Drawing.Point(146, 595);
+            this.labelServoR.Location = new System.Drawing.Point(146, 618);
             this.labelServoR.Name = "labelServoR";
             this.labelServoR.Size = new System.Drawing.Size(36, 37);
             this.labelServoR.TabIndex = 43;
@@ -588,7 +571,7 @@
             // label13
             // 
             this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(22, 582);
+            this.label13.Location = new System.Drawing.Point(22, 605);
             this.label13.Name = "label13";
             this.label13.Size = new System.Drawing.Size(58, 13);
             this.label13.TabIndex = 46;
@@ -599,7 +582,7 @@
             this.labelServoL.AutoSize = true;
             this.labelServoL.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelServoL.ForeColor = System.Drawing.Color.Blue;
-            this.labelServoL.Location = new System.Drawing.Point(18, 595);
+            this.labelServoL.Location = new System.Drawing.Point(18, 618);
             this.labelServoL.Name = "labelServoL";
             this.labelServoL.Size = new System.Drawing.Size(36, 37);
             this.labelServoL.TabIndex = 45;
@@ -608,7 +591,7 @@
             // label12
             // 
             this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(22, 642);
+            this.label12.Location = new System.Drawing.Point(22, 665);
             this.label12.Name = "label12";
             this.label12.Size = new System.Drawing.Size(65, 13);
             this.label12.TabIndex = 50;
@@ -619,7 +602,7 @@
             this.labelServoLPos.AutoSize = true;
             this.labelServoLPos.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelServoLPos.ForeColor = System.Drawing.Color.Blue;
-            this.labelServoLPos.Location = new System.Drawing.Point(18, 655);
+            this.labelServoLPos.Location = new System.Drawing.Point(18, 678);
             this.labelServoLPos.Name = "labelServoLPos";
             this.labelServoLPos.Size = new System.Drawing.Size(36, 37);
             this.labelServoLPos.TabIndex = 49;
@@ -628,7 +611,7 @@
             // label15
             // 
             this.label15.AutoSize = true;
-            this.label15.Location = new System.Drawing.Point(150, 642);
+            this.label15.Location = new System.Drawing.Point(150, 665);
             this.label15.Name = "label15";
             this.label15.Size = new System.Drawing.Size(67, 13);
             this.label15.TabIndex = 48;
@@ -639,28 +622,55 @@
             this.labelServoRPos.AutoSize = true;
             this.labelServoRPos.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelServoRPos.ForeColor = System.Drawing.Color.Blue;
-            this.labelServoRPos.Location = new System.Drawing.Point(146, 655);
+            this.labelServoRPos.Location = new System.Drawing.Point(146, 678);
             this.labelServoRPos.Name = "labelServoRPos";
             this.labelServoRPos.Size = new System.Drawing.Size(36, 37);
             this.labelServoRPos.TabIndex = 47;
             this.labelServoRPos.Text = "0";
             // 
-            // pictureBoxMech
+            // label14
             // 
-            this.pictureBoxMech.Location = new System.Drawing.Point(24, 83);
-            this.pictureBoxMech.Name = "pictureBoxMech";
-            this.pictureBoxMech.Size = new System.Drawing.Size(640, 480);
-            this.pictureBoxMech.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.pictureBoxMech.TabIndex = 51;
-            this.pictureBoxMech.TabStop = false;
-            this.pictureBoxMech.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pictureBoxMech_MouseDown);
-            this.pictureBoxMech.MouseMove += new System.Windows.Forms.MouseEventHandler(this.pictureBoxMech_MouseMove);
+            this.label14.AutoSize = true;
+            this.label14.Location = new System.Drawing.Point(718, 18);
+            this.label14.Name = "label14";
+            this.label14.Size = new System.Drawing.Size(55, 13);
+            this.label14.TabIndex = 53;
+            this.label14.Text = "Serial Port";
+            // 
+            // comboBoxSerial
+            // 
+            this.comboBoxSerial.FormattingEnabled = true;
+            this.comboBoxSerial.Location = new System.Drawing.Point(792, 15);
+            this.comboBoxSerial.Margin = new System.Windows.Forms.Padding(2);
+            this.comboBoxSerial.Name = "comboBoxSerial";
+            this.comboBoxSerial.Size = new System.Drawing.Size(115, 21);
+            this.comboBoxSerial.TabIndex = 52;
+            this.comboBoxSerial.SelectedIndexChanged += new System.EventHandler(this.comboBoxSerial_SelectedIndexChanged);
+            // 
+            // webVideo
+            // 
+            this.webVideo.Location = new System.Drawing.Point(19, 73);
+            this.webVideo.MinimumSize = new System.Drawing.Size(20, 20);
+            this.webVideo.Name = "webVideo";
+            this.webVideo.ScrollBarsEnabled = false;
+            this.webVideo.Size = new System.Drawing.Size(656, 529);
+            this.webVideo.TabIndex = 54;
+            this.webVideo.Url = new System.Uri("http://192.168.0.52:8080/jsfs.html", System.UriKind.Absolute);
+            // 
+            // timerInput
+            // 
+            this.timerInput.Enabled = true;
+            this.timerInput.Interval = 50;
+            this.timerInput.Tick += new System.EventHandler(this.timerInput_Tick);
             // 
             // FormPilot
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1028, 609);
+            this.ClientSize = new System.Drawing.Size(1064, 744);
+            this.Controls.Add(this.webVideo);
+            this.Controls.Add(this.label14);
+            this.Controls.Add(this.comboBoxSerial);
             this.Controls.Add(this.trackBarElSpeed);
             this.Controls.Add(this.label12);
             this.Controls.Add(this.trackBarElPos);
@@ -708,15 +718,13 @@
             this.Controls.Add(this.buttonFire);
             this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.textBoxDebug);
             this.Controls.Add(this.labelDebugLog);
-            this.Controls.Add(this.pictureBoxMech);
-            this.Controls.Add(this.mechCamera);
             this.KeyPreview = true;
             this.Name = "FormPilot";
             this.Text = "RA";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormTrendnet_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
+            this.Paint += new System.Windows.Forms.PaintEventHandler(this.FormPilot_Paint);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FormPilot_KeyDown);
             this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.FormPilot_MouseClick);
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.FormPilot_MouseMove);
@@ -728,7 +736,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.trackBarAzSpeed)).EndInit();
             this.panelGunOrientation.ResumeLayout(false);
             this.panelGunOrientation.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxMech)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -738,8 +745,6 @@
 
         private System.Windows.Forms.TextBox textBoxDebug;
         private System.Windows.Forms.Label labelDebugLog;
-        private AForge.Controls.VideoSourcePlayer mechCamera;
-        private System.Windows.Forms.Timer timer;
         private System.Windows.Forms.ToolStrip toolStrip1;
         private System.Windows.Forms.ToolStripLabel toolStripLabelFPS;
         private System.Windows.Forms.TrackBar trackBarElPos;
@@ -791,7 +796,10 @@
         private System.Windows.Forms.Label labelServoLPos;
         private System.Windows.Forms.Label label15;
         private System.Windows.Forms.Label labelServoRPos;
-        private System.Windows.Forms.PictureBox pictureBoxMech;
+        private System.Windows.Forms.Label label14;
+        private System.Windows.Forms.ComboBox comboBoxSerial;
+        private System.Windows.Forms.WebBrowser webVideo;
+        private System.Windows.Forms.Timer timerInput;
     }
 }
 

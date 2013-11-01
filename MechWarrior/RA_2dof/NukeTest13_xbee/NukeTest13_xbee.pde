@@ -6,6 +6,7 @@
 #include <ax12.h>
 #include <BioloidController.h>
 #include <Commander.h>
+#include <avr/pgmspace.h>
 
 //ids for motor are in order M1,M2,..M8
 
@@ -14,9 +15,13 @@ int mins[] = {432, 424, 482, 483, 440, 488, 413, 485};
 int maxs[] = {606, 607, 636, 606, 590, 624, 599, 620};
 
 // pose positions
-int neutral[] = {511, 511, 511, 511, 511, 511, 511, 511};
-
-
+PROGMEM prog_uint16_t Right_Fwd_Lift[] = {8, 512, 487, 613, 513, 505, 511, 579, 587};
+PROGMEM prog_uint16_t Left_Fwd_Lift[] = {8, 510, 510, 510, 574, 509, 604, 511, 510};
+PROGMEM prog_uint16_t Left_Fwd_Sweep[] = {8, 510, 444, 502, 586, 564, 574, 567, 505};
+PROGMEM prog_uint16_t Left_Fwd_Down[] = {8, 452, 444, 502, 512, 570, 508, 577, 507};
+PROGMEM prog_uint16_t Neutral[] = {8, 511, 511, 511, 511, 511, 511, 511, 511};
+PROGMEM prog_uint16_t Right_Fwd_Down[] = {8, 568, 545, 502, 504, 460, 518, 435, 511};
+PROGMEM prog_uint16_t Right_Fwd_Sweep[] = {8, 586, 587, 616, 503, 484, 520, 433, 600};
 
 Commander command = Commander();
 BioloidController bioloid = BioloidController(1000000);
@@ -41,10 +46,8 @@ void setup(){
     bioloid.readPose();
     
     // setup neutral position
-    for(int i=0; i < bioloid.poseSize; i++)
-    {
-      bioloid.setNextPose(i+1, neutral[i]);   // ids for motor are in order M1,M2,..M8
-    }
+    bioloid.loadPose(Neutral);
+    
     bioloid.interpolateSetup(1000);
     while(bioloid.interpolating > 0){
         bioloid.interpolateStep();

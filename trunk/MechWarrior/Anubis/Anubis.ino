@@ -68,6 +68,10 @@ void setup() {
     
    //USB Serial initialize
    SerialUSB.begin();
+   
+   // XBEE setup on uart 2
+   Serial2.begin(38400);
+   
    //Initialize dynamixel bus as 1Mbps baud rate
    Dxl.begin(1);  
   

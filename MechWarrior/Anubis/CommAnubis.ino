@@ -194,7 +194,7 @@ void DynamixelPosTx() {
       SerialUSB.println(uT1[0]);
   }
 }
-
+/*
 // temp function until we get xbee and controller setup
 void HostComm() {
   
@@ -202,12 +202,12 @@ void HostComm() {
   // 511 center up max 1023, up min 0
   // Step Commands in x-direction
   fdelx   = JoystickReshape(1023) * delxMult * float(uStepSize);
-  fdely   = -JoystickReshape(512) * delyMult * float(uStepSize);;
+  fdely   = -JoystickReshape(1023) * delyMult * float(uStepSize);;
 }
+*/
 /*********************************************************************************************
  * Host Tx/Rx Function - From DFrobot Wireless Controller
  *********************************************************************************************/
-/*
 void HostComm() {
   unsigned Buttons1;
   unsigned Buttons2;
@@ -220,9 +220,9 @@ void HostComm() {
   unsigned RightJoystickUDLOW;
   unsigned RightJoystickUDHIGH;
 
-  if (Serial.available() > sizeRx - 1) {
+  if (Serial2.available() > sizeRx - 1) {
     for (int i = 0; i <= sizeRx - 1; i++) {
-      bRxHost[i] = Serial.read();
+      bRxHost[i] = Serial2.read();
     }
     iChcksumHost = 0;
     for (int i = 2; i <= sizeRx - 2; i++) {
@@ -264,6 +264,7 @@ void HostComm() {
       // Set Gate Interrupt Update Speed (How Fast Gate Steps are Executed)
       // Set Step Size Multiplier
       // Set Step Height Multiplier
+      /*
       if (button1 == 1) {
         Timer1.initialize(TimerMS1);
         uStepSize  = 2;
@@ -280,7 +281,7 @@ void HostComm() {
         Timer1.initialize(TimerMS4);
         uStepSize  = 5;
       }
-
+      */
       // Step Commands in x-direction
       fdelx   = JoystickReshape(int(LeftJoystickUDLOW)  + int(LeftJoystickUDHIGH << 8)) * delxMult * float(uStepSize);
 
@@ -295,7 +296,7 @@ void HostComm() {
         fdelyaw = -JoystickReshape(int(LeftJoystickLRLOW)  + int(LeftJoystickLRHIGH << 8)) * delyawMult * float(uStepSize);
         fdely   = 0;
       }
-
+      /*
       // Turn On/Off Laser
       if (buttonRZ1 == 1) {
         digitalWrite(laserPin, LOW);
@@ -303,7 +304,7 @@ void HostComm() {
       if (buttonRZ2 == 1) {
         digitalWrite(laserPin, HIGH);
       }
-
+      */
       // Body Pitch Adjustment
       float RightJoystickUD = float(int(RightJoystickUDLOW)  + int(RightJoystickUDHIGH << 8) - 512) / 512;
       if ((RightJoystickUD > .25) && (fPitch < PitchMax))
@@ -352,12 +353,12 @@ void HostComm() {
       }
 
     }
-    //else {
-    //  Serial.flush();
-    //}
+    else {
+      Serial2.flush();
+    }
   }
 }
-*/
+
 /*********************************************************************************************
  * Reshape Analog Joystick for Deadband at Zero
  *********************************************************************************************/

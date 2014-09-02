@@ -37,7 +37,7 @@
   #define LFT 2.95275591             // Foot Radius - Joint Radius   (in) = 75 mm     
 
   // Offsets used in calculation of Dynamixel angle commands  
-  #define offsetT11  0.0           // Theta1 Offset - Leg1         (deg)             
+  #define offsetT11  -45.0           // Theta1 Offset - Leg1         (deg)             
   #define offsetT21  -135.0          // Theta1 Offset - Leg2         (deg)
   #define offsetT31  135.0           // Theta1 Offset - Leg3         (deg)
   #define offsetT41  45.0            // Theta1 Offset - Leg4         (deg)
